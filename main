@@ -209,3 +209,149 @@ const LanguageSection = () => {
 export default LanguageSection;
 
 
+import React from 'react';
+import { useFormContext, Controller } from 'react-hook-form';
+
+const ReferenceContact = () => {
+  const { control } = useFormContext();
+
+  return (
+    <div>
+      <h2>Reference Contact</h2>
+      <Controller
+        name="referenceName"
+        control={control}
+        render={({ field }) => <input type="text" {...field} placeholder="Reference Name" />}
+      />
+      <Controller
+        name="referenceEmail"
+        control={control}
+        render={({ field }) => <input type="email" {...field} placeholder="Reference Email" />}
+      />
+      <Controller
+        name="referencePhoneNumber"
+        control={control}
+        render={({ field }) => <input type="text" {...field} placeholder="Reference Phone Number" />}
+      />
+      <Controller
+        name="relationship"
+        control={control}
+        render={({ field }) => <input type="text" {...field} placeholder="Relationship" />}
+      />
+    </div>
+  );
+};
+
+export default ReferenceContact;
+
+
+import React from 'react';
+import { useFormContext, Controller } from 'react-hook-form';
+
+const Preferences = () => {
+  const { control } = useFormContext();
+
+  return (
+    <div>
+      <h2>Preferences</h2>
+      <Controller
+        name="preferredLocation"
+        control={control}
+        render={({ field }) => <input type="text" {...field} placeholder="Preferred Location" />}
+      />
+      <Controller
+        name="expectedSalary"
+        control={control}
+        render={({ field }) => <input type="number" {...field} placeholder="Expected Salary" />}
+      />
+      <Controller
+        name="noticePeriod"
+        control={control}
+        render={({ field }) => <input type="text" {...field} placeholder="Notice Period" />}
+      />
+    </div>
+  );
+};
+
+export default Preferences;
+
+
+import React, { useState } from 'react';
+import { useForm, FormProvider } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
+import BasicDetails from './BasicDetails';
+import Education from './Education';
+import Experience from './Experience';
+import Language from './Language';
+import Technology from './Technology';
+import ReferenceContact from './ReferenceContact';
+import Preferences from './Preferences';
+import { basicDetailsSchema, educationSchema, experienceSchema, languageSchema, technologySchema, referenceContactSchema, preferencesSchema } from './validationSchemas';
+
+const steps = [
+  { label: 'Basic Details', component: BasicDetails, schema: basicDetailsSchema },
+  { label: 'Education', component: Education, schema: educationSchema },
+  { label: 'Experience', component: Experience, schema: experienceSchema },
+  { label: 'Language', component: Language, schema: languageSchema },
+  { label: 'Technology', component: Technology, schema: technologySchema },
+  { label: 'Reference Contact', component: ReferenceContact, schema: referenceContactSchema },
+  { label: 'Preferences', component: Preferences, schema: preferencesSchema },
+];
+
+const App = () => {
+  const [step, setStep] = useState(0);
+
+  const currentStep = steps[step];
+
+  const methods = useForm({
+    resolver: yupResolver(currentStep.schema),
+    defaultValues: {
+      fullName: '',
+      email: '',
+      phoneNumber: '',
+      dateOfBirth: '',
+      education: [{ qualification: '', university: '', graduationYear: '', percentage: '' }],
+      experience: [{ jobTitle: '', employer: '', years: '' }],
+      languages: [{ language: '', read: false, write: false, speak: false }],
+      technologies: [{ technology: '', experienceLevel: '' }],
+      referenceName: '',
+      referenceEmail: '',
+      referencePhoneNumber: '',
+      relationship: '',
+      preferredLocation: '',
+      expectedSalary: '',
+      noticePeriod: '',
+    },
+    mode: 'onBlur',
+  });
+
+  const onSubmit = async (data) => {
+    if (step < steps.length - 1) {
+      setStep((prev) => prev + 1);
+    } else {
+      console.log('Form data:', data);
+    }
+  };
+
+  const onBack = () => {
+    if (step > 0) {
+      setStep((prev) => prev - 1);
+    }
+  };
+
+  return (
+    <FormProvider {...methods}>
+      <form onSubmit={methods.handleSubmit(onSubmit)}>
+        <h1>{currentStep.label}</h1>
+        <currentStep.component />
+        <div>
+          {step > 0 && <button type="button" onClick={onBack}>Back</button>}
+          <button type="submit">{step < steps.length - 1 ? 'Next' : 'Submit'}</button>
+        </div>
+      </form>
+    </FormProvider>
+  );
+};
+
+export default App;
