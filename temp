@@ -1,0 +1,521 @@
+import React, { useState, useEffect } from 'react';
+import { useForm, useFieldArray, SubmitHandler } from 'react-hook-form';
+
+interface LanguageFormData {
+  english: boolean;
+  spanish: boolean;
+  french: boolean;
+  [key: string]: boolean;
+}
+
+const JobApplicationForm: React.FC = () => {
+  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm();
+  const { fields: educationFields, append: appendEducation, remove: removeEducation } = useFieldArray({
+    control: useForm().control,
+    name: "education",
+  });
+  const [message, setMessage] = useState<string>("");
+
+  const watchedLanguages = watch<LanguageFormData>("languages");
+
+  useEffect(() => {
+    if (watchedLanguages) {
+      const selectedLanguages = Object.values(watchedLanguages).filter(lang => lang);
+      if (selectedLanguages.length === 0) {
+        setMessage("Select at least one language.");
+      } else {
+        setMessage("");
+      }
+    }
+  }, [watchedLanguages]);
+
+  const handleLanguageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target;
+    setValue(name, checked);
+    // If Read, Write, or Speak of any language is selected, automatically select that language
+    if (name.includes("read") || name.includes("write") || name.includes("speak")) {
+      const language = name.split(".")[1];
+      if (checked) {
+        setValue(`languages.${language}`, true);
+      } else {
+        setValue(`languages.${language}`, false);
+      }
+    }
+  };
+
+  const onSubmit: SubmitHandler<LanguageFormData> = (data) => {
+    console.log(data);
+  };
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <h2>Languages Known</h2>
+      <label>
+        English
+        <input
+          type="checkbox"
+          name="languages.english"
+          onChange={handleLanguageChange}
+          ref={register}
+        />
+      </label>
+      <div>
+        <label>
+          Read
+          <input
+            type="checkbox"
+            name="languages.read.english"
+            onChange={handleLanguageChange}
+            ref={register}
+          />
+        </label>
+        <label>
+          Write
+          <input
+            type="checkbox"
+            name="languages.write.english"
+            onChange={handleLanguageChange}
+            ref={register}
+          />
+        </label>
+        <label>
+          Speak
+          <input
+            type="checkbox"
+            name="languages.speak.english"
+            onChange={handleLanguageChange}
+            ref={register}
+          />
+        </label>
+      </div>
+      {/* Add checkboxes for other languages similarly */}
+      {message && <span>{message}</span>}
+      <button type="submit">Submit</button>
+    </form>
+  );
+};
+
+export default JobApplicationForm;
+
+
+
+
+
+import * as yup from 'yup';
+
+const schema = yup.object().shape({
+  education: yup.array().of(
+    yup.object().shape({
+      courseName: yup.string(),
+      passingYear: yup.string().when('courseName', {
+        is: (val) => !!val,
+        then: yup.string().required('Passing year is required when course name is filled'),
+        otherwise: yup.string(),
+      }),
+      percentage: yup.number().when('courseName', {
+        is: (val) => !!val,
+        then: yup.number().required('Percentage is required when course name is filled'),
+        otherwise: yup.number(),
+      }),
+      university: yup.string().when('courseName', {
+        is: (val) => !!val,
+        then: yup.string().required('University is required when course name is filled'),
+        otherwise: yup.string(),
+      }),
+    })
+  ),
+});
+
+
+
+const EducationForm: React.FC = () => {
+  const { register, errors, control } = useFormContext();
+  const { fields, append, remove } = useFieldArray<EducationFormData>({
+    name: "education",
+  });
+
+  return (
+    <div>
+      <h2>Education</h2>
+      {fields.map((field, index) => (
+        <div key={field.id}>
+          <input
+            type="text"
+            placeholder="Course Name"
+            name={`education[${index}].courseName`}
+            ref={register}
+          />
+          <input
+            type="text"
+            placeholder="Passing Year"
+            name={`education[${index}].passingYear`}
+            ref={register}
+          />
+          {errors.education && errors.education[index]?.passingYear && (
+            <p>{errors.education[index].passingYear.message}</p>
+          )}
+          <input
+            type="text"
+            placeholder="Percentage"
+            name={`education[${index}].percentage`}
+            ref={register}
+          />
+          {errors.education && errors.education[index]?.percentage && (
+            <p>{errors.education[index].percentage.message}</p>
+          )}
+          <input
+            type="text"
+            placeholder="University"
+            name={`education[${index}].university`}
+            ref={register}
+          />
+          {errors.education && errors.education[index]?.university && (
+            <p>{errors.education[index].university.message}</p>
+          )}
+          <button type="button" onClick={() => remove(index)}>Remove</button>
+        </div>
+      ))}
+      <button type="button" onClick={() => append({})}>Add Education</button>
+    </div>
+  );
+};
+
+
+import * as yup from 'yup';
+
+// Define validation schema for Basic Details step
+const basicDetailsSchema = yup.object().shape({
+  fullName: yup.string().required('Full Name is required'),
+  email: yup.string().email('Invalid email').required('Email is required'),
+});
+
+// Define validation schema for Education step
+const educationSchema = yup.object().shape({
+  education: yup.array().of(
+    yup.object().shape({
+      courseName: yup.string().required('Course Name is required'),
+      // Add more validation rules for other fields if needed
+    })
+  ),
+});
+
+
+import React, { useState } from 'react';
+import { useForm, SubmitHandler, FormProvider } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
+
+// Define the overall form schema combining all steps
+const schema = yup.object().shape({
+  ...basicDetailsSchema.fields, // Include fields from Basic Details schema
+  ...educationSchema.fields, // Include fields from Education schema
+});
+
+// Define the form component
+const MultiStepForm: React.FC = () => {
+  const [step, setStep] = useState(1);
+  const methods = useForm({
+    resolver: yupResolver(schema),
+  });
+  const { handleSubmit, formState: { isSubmitting } } = methods;
+
+  const onSubmit: SubmitHandler<FormData> = (data) => {
+    console.log(data);
+    if (step === 1) {
+      setStep(2); // Move to the next step after submitting Basic Details
+    } else {
+      // Submit the entire form data
+    }
+  };
+
+  const handlePrevStep = () => {
+    setStep(step - 1);
+  };
+
+  return (
+    <FormProvider {...methods}>
+      <form onSubmit={handleSubmit(onSubmit)}>
+        {step === 1 && <BasicDetailsStep />}
+        {step === 2 && <EducationStep />}
+        {/* Add more steps */}
+        <div>
+          {step > 1 && (
+            <button type="button" onClick={handlePrevStep}>
+              Previous
+            </button>
+          )}
+          <button type="submit" disabled={isSubmitting}>
+            {step === 2 ? 'Submit' : 'Next'}
+          </button>
+        </div>
+      </form>
+    </FormProvider>
+  );
+};
+
+export default MultiStepForm;
+
+
+
+
+
+import * as yup from 'yup';
+
+// Define validation schema for step 1 (Basic Details)
+const basicDetailsSchema = yup.object().shape({
+  fullName: yup.string().required('Full Name is required'),
+  email: yup.string().email('Invalid email').required('Email is required'),
+  phoneNumber: yup.string().required('Phone Number is required').matches(/^[0-9]{10}$/, 'Phone Number must be exactly 10 digits'),
+  dateOfBirth: yup.date().required('Date of Birth is required'),
+  // Add more validation rules for other fields in step 1 if needed
+});
+
+// Define validation schema for step 2 (Education)
+const educationSchema = yup.object().shape({
+  education: yup.array().of(
+    yup.object().shape({
+      qualification: yup.string().required('Qualification is required').when(['university', 'graduationYear', 'percentage'], {
+        is: (university, graduationYear, percentage) => university || graduationYear || percentage,
+        then: schema => schema.required('Qualification is required when any of the other fields are filled'),
+      }),
+      university: yup.string().when('qualification', {
+        is: val => val && val.length > 0,
+        then: schema => schema.required('University is required if Qualification is filled'),
+      }),
+      graduationYear: yup.number().when('qualification', {
+        is: val => val && val.length > 0,
+        then: schema => schema.required('Graduation Year is required if Qualification is filled').min(1900, 'Year must be after 1900').max(new Date().getFullYear(), `Year can't be in the future`),
+      }),
+      percentage: yup.number().when('qualification', {
+        is: val => val && val.length > 0,
+        then: schema => schema.required('Percentage is required if Qualification is filled').min(0, 'Percentage cannot be negative').max(100, 'Percentage cannot exceed 100'),
+      }),
+    })
+  ),
+});
+
+// Define validation schema for step 3 (Experience)
+const experienceSchema = yup.object().shape({
+  experience: yup.array().of(
+    yup.object().shape({
+      jobTitle: yup.string().required('Job Title is required').when(['employer', 'years'], {
+        is: (employer, years) => employer || years,
+        then: schema => schema.required('Job Title is required when any of the other fields are filled'),
+      }),
+      employer: yup.string().when('jobTitle', {
+        is: val => val && val.length > 0,
+        then: schema => schema.required('Employer is required if Job Title is filled'),
+      }),
+      years: yup.number().when('jobTitle', {
+        is: val => val && val.length > 0,
+        then: schema => schema.required('Years of Experience is required if Job Title is filled').min(0, 'Years of Experience cannot be negative'),
+      }),
+    })
+  ),
+});
+
+const languageSchema = yup.object().shape({
+  languages: yup.array().of(yup.object().shape({
+    language: yup.string().required('Language is required'),
+    read: yup.boolean(),
+    write: yup.boolean(),
+    speak: yup.boolean(),
+  })).test('isSelected', 'At least one language must be selected', value => 
+    value.some(v => v.read || v.write || v.speak)
+  ),
+});
+
+// Define validation schema for technologies
+const technologySchema = yup.object().shape({
+  technologies: yup.array().of(yup.object().shape({
+    technology: yup.string().required('Technology is required'),
+    experienceLevel: yup.string().when('technology', {
+      is: val => val && val.length > 0,
+      then: schema => schema.required('Experience Level is required if Technology is selected'),
+    }),
+  })).test('isSelected', 'At least one technology must be selected', value => 
+    value.some(v => v.technology && v.experienceLevel)
+  ),
+});
+
+// Define validation schema for step 6 (Reference Contact)
+const referenceContactSchema = yup.object().shape({
+  referenceName: yup.string().required('Reference Name is required'),
+  referenceEmail: yup.string().email('Invalid email').required('Reference Email is required'),
+  referencePhoneNumber: yup.string().required('Reference Phone Number is required').matches(/^[0-9]{10}$/, 'Reference Phone Number must be exactly 10 digits'),
+  relationship: yup.string().required('Relationship is required'),
+  // Add more validation rules for reference contact fields if needed
+});
+
+// Define validation schema for step 7 (Preferences)
+const preferencesSchema = yup.object().shape({
+  preferredLocation: yup.string().required('Preferred Location is required'),
+  expectedSalary: yup.number().required('Expected Salary is required').min(0, 'Salary cannot be negative'),
+  noticePeriod: yup.string().required('Notice Period is required'),
+  // Add more validation rules for preferences fields if needed
+});
+
+export {
+  basicDetailsSchema,
+  educationSchema,
+  experienceSchema,
+  languageSchema,
+  technologySchema,
+  referenceContactSchema,
+  preferencesSchema
+};
+
+
+
+use of above
+
+import React from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import { languageSchema, technologySchema } from './validationSchemas'; // Adjust import as necessary
+
+const MyForm = () => {
+  const { control, handleSubmit, watch, setValue } = useForm({
+    resolver: yupResolver(yup.object().shape({
+      languages: languageSchema,
+      technologies: technologySchema,
+      // Other schemas
+    })),
+    defaultValues: {
+      languages: [{ language: '', read: false, write: false, speak: false }],
+      technologies: [{ technology: '', experienceLevel: '' }],
+      // Other default values
+    },
+  });
+
+  const languages = watch('languages');
+  const technologies = watch('technologies');
+
+  const onSubmit = data => {
+    console.log(data);
+  };
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)}>
+      {/* Languages Section */}
+      {languages.map((_, index) => (
+        <div key={index}>
+          <Controller
+            name={`languages[${index}].language`}
+            control={control}
+            render={({ field }) => (
+              <input type="text" {...field} placeholder="Language" />
+            )}
+          />
+          <label>
+            <input
+              type="checkbox"
+              checked={languages[index].read}
+              onChange={() => {
+                setValue(`languages[${index}].read`, !languages[index].read);
+                if (!languages[index].read) {
+                  setValue(`languages[${index}].language`, ''); // Ensure language is filled if any checkbox is checked
+                }
+              }}
+            />
+            Read
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={languages[index].write}
+              onChange={() => {
+                setValue(`languages[${index}].write`, !languages[index].write);
+                if (!languages[index].write) {
+                  setValue(`languages[${index}].language`, ''); // Ensure language is filled if any checkbox is checked
+                }
+              }}
+            />
+            Write
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={languages[index].speak}
+              onChange={() => {
+                setValue(`languages[${index}].speak`, !languages[index].speak);
+                if (!languages[index].speak) {
+                  setValue(`languages[${index}].language`, ''); // Ensure language is filled if any checkbox is checked
+                }
+              }}
+            />
+            Speak
+          </label>
+        </div>
+      ))}
+
+      {/* Technologies Section */}
+      {technologies.map((_, index) => (
+        <div key={index}>
+          <Controller
+            name={`technologies[${index}].technology`}
+            control={control}
+            render={({ field }) => (
+              <input type="checkbox" {...field} checked={!!technologies[index].technology} onChange={() => {
+                setValue(`technologies[${index}].technology`, technologies[index].technology ? '' : 'TechnologyName');
+                if (!technologies[index].technology) {
+                  setValue(`technologies[${index}].experienceLevel`, ''); // Ensure experience level is cleared if checkbox is unchecked
+                }
+              }} />
+            )}
+          />
+          <label>
+            <input
+              type="radio"
+              name={`technologies[${index}].experienceLevel`}
+              value="Beginner"
+              checked={technologies[index].experienceLevel === 'Beginner'}
+              onChange={() => {
+                setValue(`technologies[${index}].experienceLevel`, 'Beginner');
+                if (!technologies[index].technology) {
+                  setValue(`technologies[${index}].technology`, 'TechnologyName'); // Ensure technology is filled if any radio is selected
+                }
+              }}
+            />
+            Beginner
+          </label>
+          <label>
+            <input
+              type="radio"
+              name={`technologies[${index}].experienceLevel`}
+              value="Intermediate"
+              checked={technologies[index].experienceLevel === 'Intermediate'}
+              onChange={() => {
+                setValue(`technologies[${index}].experienceLevel`, 'Intermediate');
+                if (!technologies[index].technology) {
+                  setValue(`technologies[${index}].technology`, 'TechnologyName'); // Ensure technology is filled if any radio is selected
+                }
+              }}
+            />
+            Intermediate
+          </label>
+          <label>
+            <input
+              type="radio"
+              name={`technologies[${index}].experienceLevel`}
+              value="Expert"
+              checked={technologies[index].experienceLevel === 'Expert'}
+              onChange={() => {
+                setValue(`technologies[${index}].experienceLevel`, 'Expert');
+                if (!technologies[index].technology) {
+                  setValue(`technologies[${index}].technology`, 'TechnologyName'); // Ensure technology is filled if any radio is selected
+                }
+              }}
+            />
+            Expert
+          </label>
+        </div>
+      ))}
+
+      <button type="submit">Submit</button>
+    </form>
+  );
+};
+
+export default MyForm;
+
