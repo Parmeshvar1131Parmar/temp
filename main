@@ -1,0 +1,211 @@
+import React from 'react';
+import { useFormContext, Controller } from 'react-hook-form';
+
+const BasicDetails: React.FC = () => {
+  const { control } = useFormContext();
+
+  return (
+    <div>
+      <Controller
+        name="fullName"
+        control={control}
+        render={({ field, fieldState: { error } }) => (
+          <div>
+            <input {...field} placeholder="Full Name" />
+            {error && <span>{error.message}</span>}
+          </div>
+        )}
+      />
+      <Controller
+        name="email"
+        control={control}
+        render={({ field, fieldState: { error } }) => (
+          <div>
+            <input {...field} placeholder="Email" />
+            {error && <span>{error.message}</span>}
+          </div>
+        )}
+      />
+      {/* Add other fields similarly */}
+    </div>
+  );
+};
+
+export default BasicDetails;
+
+import React from 'react';
+import { useFormContext, Controller } from 'react-hook-form';
+
+const Education: React.FC = () => {
+  const { control, watch, setValue } = useFormContext();
+  const education = watch('education');
+
+  return (
+    <div>
+      {education.map((_, index) => (
+        <div key={index}>
+          <Controller
+            name={`education[${index}].qualification`}
+            control={control}
+            render={({ field, fieldState: { error } }) => (
+              <div>
+                <input {...field} placeholder="Qualification" />
+                {error && <span>{error.message}</span>}
+              </div>
+            )}
+          />
+          <Controller
+            name={`education[${index}].university`}
+            control={control}
+            render={({ field, fieldState: { error } }) => (
+              <div>
+                <input {...field} placeholder="University" />
+                {error && <span>{error.message}</span>}
+              </div>
+            )}
+          />
+          <Controller
+            name={`education[${index}].graduationYear`}
+            control={control}
+            render={({ field, fieldState: { error } }) => (
+              <div>
+                <input {...field} placeholder="Graduation Year" type="number" />
+                {error && <span>{error.message}</span>}
+              </div>
+            )}
+          />
+          <Controller
+            name={`education[${index}].percentage`}
+            control={control}
+            render={({ field, fieldState: { error } }) => (
+              <div>
+                <input {...field} placeholder="Percentage" type="number" />
+                {error && <span>{error.message}</span>}
+              </div>
+            )}
+          />
+        </div>
+      ))}
+    </div>
+  );
+};
+
+export default Education;
+
+import React from 'react';
+import { useFormContext, Controller } from 'react-hook-form';
+
+const Experience: React.FC = () => {
+  const { control, watch, setValue } = useFormContext();
+  const experience = watch('experience');
+
+  return (
+    <div>
+      {experience.map((_, index) => (
+        <div key={index}>
+          <Controller
+            name={`experience[${index}].jobTitle`}
+            control={control}
+            render={({ field, fieldState: { error } }) => (
+              <div>
+                <input {...field} placeholder="Job Title" />
+                {error && <span>{error.message}</span>}
+              </div>
+            )}
+          />
+          <Controller
+            name={`experience[${index}].employer`}
+            control={control}
+            render={({ field, fieldState: { error } }) => (
+              <div>
+                <input {...field} placeholder="Employer" />
+                {error && <span>{error.message}</span>}
+              </div>
+            )}
+          />
+          <Controller
+            name={`experience[${index}].years`}
+            control={control}
+            render={({ field, fieldState: { error } }) => (
+              <div>
+                <input {...field} placeholder="Years of Experience" type="number" />
+                {error && <span>{error.message}</span>}
+              </div>
+            )}
+          />
+        </div>
+      ))}
+    </div>
+  );
+};
+
+export default Experience;
+
+
+import React from 'react';
+import { useFormContext, Controller } from 'react-hook-form';
+
+const LanguageSection = () => {
+  const { control, watch, setValue } = useFormContext();
+  const languages = watch('languages');
+
+  return (
+    <div>
+      <h2>Languages</h2>
+      {languages.map((_, index) => (
+        <div key={index}>
+          <Controller
+            name={`languages[${index}].language`}
+            control={control}
+            render={({ field }) => (
+              <input type="text" {...field} placeholder="Language" />
+            )}
+          />
+          <label>
+            <input
+              type="checkbox"
+              checked={languages[index].read}
+              onChange={() => {
+                setValue(`languages[${index}].read`, !languages[index].read);
+                if (!languages[index].read) {
+                  setValue(`languages[${index}].language`, ''); // Ensure language is filled if any checkbox is checked
+                }
+              }}
+            />
+            Read
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={languages[index].write}
+              onChange={() => {
+                setValue(`languages[${index}].write`, !languages[index].write);
+                if (!languages[index].write) {
+                  setValue(`languages[${index}].language`, ''); // Ensure language is filled if any checkbox is checked
+                }
+              }}
+            />
+            Write
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={languages[index].speak}
+              onChange={() => {
+                setValue(`languages[${index}].speak`, !languages[index].speak);
+                if (!languages[index].speak) {
+                  setValue(`languages[${index}].language`, ''); // Ensure language is filled if any checkbox is checked
+                }
+              }}
+            />
+            Speak
+          </label>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+export default LanguageSection;
+
+
