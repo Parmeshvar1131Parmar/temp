@@ -355,3 +355,131 @@ const App = () => {
 };
 
 export default App;
+
+
+
+
+-------------------------------------------------------------------------------------------------
+
+
+import React, { useState } from 'react';
+import { useForm, FormProvider } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
+import BasicDetails from './BasicDetails';
+import Education from './Education';
+import Experience from './Experience';
+import Language from './Language';
+import Technology from './Technology';
+import ReferenceContact from './ReferenceContact';
+import Preferences from './Preferences';
+
+// Define validation schema
+const validationSchema = yup.object().shape({
+  fullName: yup.string().required('Full Name is required'),
+  email: yup.string().email('Invalid email').required('Email is required'),
+  phoneNumber: yup.string().required('Phone Number is required').matches(/^[0-9]{10}$/, 'Phone Number must be exactly 10 digits'),
+  dateOfBirth: yup.date().required('Date of Birth is required'),
+  education: yup.array().of(
+    yup.object().shape({
+      qualification: yup.string().required('Qualification is required'),
+      university: yup.string().required('University is required'),
+      graduationYear: yup.number().required('Graduation Year is required').min(1900, 'Year must be after 1900').max(new Date().getFullYear(), `Year can't be in the future`),
+      percentage: yup.number().required('Percentage is required').min(0, 'Percentage cannot be negative').max(100, 'Percentage cannot exceed 100'),
+    })
+  ),
+  experience: yup.array().of(
+    yup.object().shape({
+      jobTitle: yup.string().required('Job Title is required'),
+      employer: yup.string().required('Employer is required'),
+      years: yup.number().required('Years of Experience is required').min(0, 'Years of Experience cannot be negative'),
+    })
+  ),
+  languages: yup.array().of(
+    yup.object().shape({
+      language: yup.string().required('Language is required'),
+      read: yup.boolean(),
+      write: yup.boolean(),
+      speak: yup.boolean(),
+    })).test('isSelected', 'At least one language must be selected', value => 
+    value.some(v => v.read || v.write || v.speak)
+  ),
+  technologies: yup.array().of(
+    yup.object().shape({
+      technology: yup.string().required('Technology is required'),
+      experienceLevel: yup.string().when('technology', {
+        is: val => val && val.length > 0,
+        then: schema => schema.required('Experience Level is required if Technology is selected'),
+      }),
+    })).test('isSelected', 'At least one technology must be selected', value => 
+    value.some(v => v.technology && v.experienceLevel)
+  ),
+  referenceName: yup.string().required('Reference Name is required'),
+  referenceEmail: yup.string().email('Invalid email').required('Reference Email is required'),
+  referencePhoneNumber: yup.string().required('Reference Phone Number is required').matches(/^[0-9]{10}$/, 'Reference Phone Number must be exactly 10 digits'),
+  relationship: yup.string().required('Relationship is required'),
+  preferredLocation: yup.string().required('Preferred Location is required'),
+  expectedSalary: yup.number().required('Expected Salary is required').min(0, 'Salary cannot be negative'),
+  noticePeriod: yup.string().required('Notice Period is required'),
+});
+
+const App = () => {
+  const methods = useForm({
+    resolver: yupResolver(validationSchema),
+    defaultValues: {
+      fullName: '',
+      email: '',
+      phoneNumber: '',
+      dateOfBirth: '',
+      education: [{ qualification: '', university: '', graduationYear: '', percentage: '' }],
+      experience: [{ jobTitle: '', employer: '', years: '' }],
+      languages: [{ language: '', read: false, write: false, speak: false }],
+      technologies: [{ technology: '', experienceLevel: '' }],
+      referenceName: '',
+      referenceEmail: '',
+      referencePhoneNumber: '',
+      relationship: '',
+      preferredLocation: '',
+      expectedSalary: '',
+      noticePeriod: '',
+    },
+  });
+
+  const [currentStep, setCurrentStep] = useState(0);
+  const steps = [
+    BasicDetails,
+    Education,
+    Experience,
+    Language,
+    Technology,
+    ReferenceContact,
+    Preferences,
+  ];
+
+  const onSubmit = (data) => {
+    // Handle form submission
+    console.log(data);
+  };
+
+  const nextStep = () => setCurrentStep((prev) => prev + 1);
+  const prevStep = () => setCurrentStep((prev) => prev - 1);
+
+  const StepComponent = steps[currentStep];
+
+  return (
+    <FormProvider {...methods}>
+      <form onSubmit={methods.handleSubmit(onSubmit)}>
+        <StepComponent />
+        <button type="button" disabled={currentStep === 0} onClick={prevStep}>
+          Previous
+        </button>
+        <button type="button" disabled={currentStep === steps.length - 1} onClick={nextStep}>
+          Next
+        </button>
+        {currentStep === steps.length - 1 && <button type="submit">Submit</button>}
+      </form>
+    </FormProvider>
+  );
+};
+
+export default App;
