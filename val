@@ -1,0 +1,107 @@
+import * as yup from 'yup';
+
+// Define validation schema for step 1 (Basic Details)
+const basicDetailsSchema = yup.object().shape({
+  fullName: yup.string().required('Full Name is required'),
+  email: yup.string().email('Invalid email').required('Email is required'),
+  phoneNumber: yup.string().required('Phone Number is required').matches(/^[0-9]{10}$/, 'Phone Number must be exactly 10 digits'),
+  dateOfBirth: yup.date().required('Date of Birth is required'),
+  // Add more validation rules for other fields in step 1 if needed
+});
+
+// Define validation schema for step 2 (Education)
+const educationSchema = yup.object().shape({
+  education: yup.array().of(
+    yup.object().shape({
+      qualification: yup.string().required('Qualification is required').when(['university', 'graduationYear', 'percentage'], {
+        is: (university, graduationYear, percentage) => university || graduationYear || percentage,
+        then: schema => schema.required('Qualification is required when any of the other fields are filled'),
+      }),
+      university: yup.string().when('qualification', {
+        is: val => val && val.length > 0,
+        then: schema => schema.required('University is required if Qualification is filled'),
+      }),
+      graduationYear: yup.number().when('qualification', {
+        is: val => val && val.length > 0,
+        then: schema => schema.required('Graduation Year is required if Qualification is filled').min(1900, 'Year must be after 1900').max(new Date().getFullYear(), `Year can't be in the future`),
+      }),
+      percentage: yup.number().when('qualification', {
+        is: val => val && val.length > 0,
+        then: schema => schema.required('Percentage is required if Qualification is filled').min(0, 'Percentage cannot be negative').max(100, 'Percentage cannot exceed 100'),
+      }),
+    })
+  ),
+});
+
+// Define validation schema for step 3 (Experience)
+const experienceSchema = yup.object().shape({
+  experience: yup.array().of(
+    yup.object().shape({
+      jobTitle: yup.string().required('Job Title is required').when(['employer', 'years'], {
+        is: (employer, years) => employer || years,
+        then: schema => schema.required('Job Title is required when any of the other fields are filled'),
+      }),
+      employer: yup.string().when('jobTitle', {
+        is: val => val && val.length > 0,
+        then: schema => schema.required('Employer is required if Job Title is filled'),
+      }),
+      years: yup.number().when('jobTitle', {
+        is: val => val && val.length > 0,
+        then: schema => schema.required('Years of Experience is required if Job Title is filled').min(0, 'Years of Experience cannot be negative'),
+      }),
+    })
+  ),
+});
+
+// Define validation schema for languages
+const languageSchema = yup.object().shape({
+  languages: yup.array().of(yup.object().shape({
+    language: yup.string().required('Language is required'),
+    read: yup.boolean(),
+    write: yup.boolean(),
+    speak: yup.boolean(),
+  })).test('isSelected', 'At least one language must be selected', value => 
+    value.some(v => v.read || v.write || v.speak)
+  ),
+});
+
+// Define validation schema for technologies
+const technologySchema = yup.object().shape({
+  technologies: yup.array().of(yup.object().shape({
+    technology: yup.string().required('Technology is required'),
+    experienceLevel: yup.string().when('technology', {
+      is: val => val && val.length > 0,
+      then: schema => schema.required('Experience Level is required if Technology is selected'),
+    }),
+  })).test('isSelected', 'At least one technology must be selected', value => 
+    value.some(v => v.technology && v.experienceLevel)
+  ),
+});
+
+
+// Define validation schema for step 6 (Reference Contact)
+const referenceContactSchema = yup.object().shape({
+  referenceName: yup.string().required('Reference Name is required'),
+  referenceEmail: yup.string().email('Invalid email').required('Reference Email is required'),
+  referencePhoneNumber: yup.string().required('Reference Phone Number is required').matches(/^[0-9]{10}$/, 'Reference Phone Number must be exactly 10 digits'),
+  relationship: yup.string().required('Relationship is required'),
+  // Add more validation rules for reference contact fields if needed
+});
+
+// Define validation schema for step 7 (Preferences)
+const preferencesSchema = yup.object().shape({
+  preferredLocation: yup.string().required('Preferred Location is required'),
+  expectedSalary: yup.number().required('Expected Salary is required').min(0, 'Salary cannot be negative'),
+  noticePeriod: yup.string().required('Notice Period is required'),
+  // Add more validation rules for preferences fields if needed
+});
+
+export {
+  basicDetailsSchema,
+  educationSchema,
+  experienceSchema,
+  languageSchema,
+  technologySchema,
+  referenceContactSchema,
+  preferencesSchema
+};
