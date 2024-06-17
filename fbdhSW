@@ -1,0 +1,373 @@
+ecommerce-website/
+│
+├── src/
+│   ├── api/
+│   │   └── index.ts
+│   ├── components/
+│   │   ├── Cart.tsx
+│   │   ├── Product.tsx
+│   │   └── ProductList.tsx
+│   ├── features/
+│   │   ├── cart/
+│   │   │   ├── cartSlice.ts
+│   │   │   └── Cart.tsx
+│   │   └── products/
+│   │       ├── productSlice.ts
+│   │       └── ProductList.tsx
+│   ├── pages/
+│   │   ├── Home.tsx
+│   │   ├── Login.tsx
+│   │   └── Register.tsx
+│   ├── App.tsx
+│   ├── index.tsx
+│   └── store.ts
+├── .env
+├── package.json
+└── tsconfig.json
+
+
+setting up redux
+
+// src/store.ts
+import { configureStore } from '@reduxjs/toolkit';
+import cartReducer from './features/cart/cartSlice';
+import productsReducer from './features/products/productSlice';
+
+export const store = configureStore({
+  reducer: {
+    cart: cartReducer,
+    products: productsReducer,
+  },
+});
+
+export type RootState = ReturnType<typeof store.getState>;
+export type AppDispatch = typeof store.dispatch;
+
+
+interface Product {
+  id: number;
+  name: string;
+  price: number;
+  description: string;
+  imageUrl: string;
+}
+
+interface ProductsState {
+  items: Product[];
+  status: 'idle' | 'loading' | 'succeeded' | 'failed';
+  error: string | null;
+}
+
+
+interface CartItem {
+  id: number;
+  name: string;
+  quantity: number;
+}
+
+interface CartState {
+  items: CartItem[];
+}
+
+interface User {
+  username: string;
+}
+
+interface AuthState {
+  user: User | null;
+  isAuthenticated: boolean;
+}
+
+
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import axios from 'axios';
+
+interface Product {
+  id: number;
+  name: string;
+  price: number;
+  description: string;
+  imageUrl: string;
+}
+
+interface ProductsState {
+  items: Product[];
+  status: 'idle' | 'loading' | 'succeeded' | 'failed';
+  error: string | null;
+}
+
+const initialState: Products
+
+
+authentication
+
+
+utils.indexdb.ts
+const dbName = 'ECommerceDB';
+const userStoreName = 'users';
+
+const openDB = async (): Promise<IDBDatabase> => {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(dbName, 1);
+
+    request.onupgradeneeded = (event) => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(userStoreName)) {
+        db.createObjectStore(userStoreName, { keyPath: 'username' });
+      }
+    };
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+};
+
+export const addUser = async (user: { username: string; password: string }) => {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(userStoreName, 'readwrite');
+    const store = transaction.objectStore(userStoreName);
+    const request = store.add(user);
+
+    request.onsuccess = () => resolve(true);
+    request.onerror = () => reject(request.error);
+  });
+};
+
+export const getUser = async (username: string) => {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(userStoreName, 'readonly');
+    const store = transaction.objectStore(userStoreName);
+    const request = store.get(username);
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+};
+
+
+feature/auth/authslide.ts
+
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { addUser, getUser } from '../../utils/indexedDB';
+import { AuthState, User } from '../../types/interfaces';
+
+const initialState: AuthState = {
+  user: null,
+  isAuthenticated: false,
+  status: 'idle',
+  error: null,
+};
+
+export const registerUser = createAsyncThunk('auth/registerUser', async (user: { username: string; password: string }) => {
+  await addUser(user);
+  return user;
+});
+
+export const loginUser = createAsyncThunk('auth/loginUser', async (credentials: { username: string; password: string }) => {
+  const user = (await getUser(credentials.username)) as User;
+  if (user && user.password === credentials.password) {
+    return user;
+  }
+  throw new Error('Invalid credentials');
+});
+
+const authSlice = createSlice({
+  name: 'auth',
+  initialState,
+  reducers: {
+    logout: (state) => {
+      state.user = null;
+      state.isAuthenticated = false;
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(registerUser.pending, (state) => {
+        state.status = 'loading';
+      })
+      .addCase(registerUser.fulfilled, (state, action: PayloadAction<User>) => {
+        state.status = 'succeeded';
+        state.user = action.payload;
+        state.isAuthenticated = true;
+      })
+      .addCase(registerUser.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.error.message;
+      })
+      .addCase(loginUser.pending, (state) => {
+        state.status = 'loading';
+      })
+      .addCase(loginUser.fulfilled, (state, action: PayloadAction<User>) => {
+        state.status = 'succeeded';
+        state.user = action.payload;
+        state.isAuthenticated = true;
+      })
+      .addCase(loginUser.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.error.message;
+      });
+  },
+});
+
+export const { logout } = authSlice.actions;
+
+export default authSlice.reducer;
+
+
+import React, { useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from '../store';
+import { registerUser } from '../features/auth/authSlice';
+
+const Register: React.FC = () => {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const dispatch = useDispatch();
+  const authStatus = useSelector((state: RootState) => state.auth.status);
+  const error = useSelector((state: RootState) => state.auth.error);
+
+  const handleRegister = () => {
+    dispatch(registerUser({ username, password }));
+  };
+
+  return (
+    <div>
+      <h1>Register</h1>
+      <input
+        type="text"
+        placeholder="Username"
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
+      />
+      <input
+        type="password"
+        placeholder="Password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
+      <button onClick={handleRegister}>Register</button>
+      {authStatus === 'loading' && <p>Registering...</p>}
+      {authStatus === 'failed' && <p>Error: {error}</p>}
+    </div>
+  );
+};
+
+export default Register;
+
+
+import React, { useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from '../store';
+import { loginUser } from '../features/auth/authSlice';
+
+const Login: React.FC = () => {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const dispatch = useDispatch();
+  const authStatus = useSelector((state: RootState) => state.auth.status);
+  const error = useSelector((state: RootState) => state.auth.error);
+
+  const handleLogin = () => {
+    dispatch(loginUser({ username, password }));
+  };
+
+  return (
+    <div>
+      <h1>Login</h1>
+      <input
+        type="text"
+        placeholder="Username"
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
+      />
+      <input
+        type="password"
+        placeholder="Password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
+      <button onClick={handleLogin}>Login</button>
+      {authStatus === 'loading' && <p>Logging in...</p>}
+      {authStatus === 'failed' && <p>Error: {error}</p>}
+    </div>
+  );
+};
+
+export default Login;
+
+
+
+import React from 'react';
+import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
+import ProductList from './components/ProductList';
+import Cart from './components/Cart';
+import Register from './components/Register';
+import Login from './components/Login';
+
+const App: React.FC = () => {
+  return (
+    <Router>
+      <div>
+        <nav>
+          <Link to="/">Products</Link>
+          <Link to="/cart">Cart</Link>
+          <Link to="/register">Register</Link>
+          <Link to="/login">Login</Link>
+        </nav>
+        <Routes>
+          <Route path="/" element={<ProductList />} />
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/login" element={<Login />} />
+        </Routes>
+      </div>
+    </Router>
+  );
+};
+
+export default App;
+
+
+// Product Interfaces
+export interface Product {
+  id: number;
+  name: string;
+  price: number;
+  description: string;
+  imageUrl: string;
+}
+
+export interface ProductsState {
+  items: Product[];
+  status: 'idle' | 'loading' | 'succeeded' | 'failed';
+  error: string | null;
+}
+
+// Cart Interfaces
+export interface CartItem {
+  id: number;
+  name: string;
+  quantity: number;
+}
+
+export interface CartState {
+  items: CartItem[];
+}
+
+// Auth Interfaces
+export interface User {
+  username: string;
+  password: string;
+}
+
+export interface AuthState {
+  user: User | null;
+  isAuthenticated: boolean;
+  status: 'idle' | 'loading' | 'succeeded' | 'failed';
+  error: string | null;
+}
+
+
+
