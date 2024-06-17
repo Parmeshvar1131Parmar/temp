@@ -1,0 +1,359 @@
+ <div>
+            <button type="button" disabled={currentStep === 0} onClick={prevStep}>
+              Previous
+            </button>
+            <button type="button" disabled={currentStep === steps.length - 1} onClick={nextStep}>
+              Next
+            </button>
+            {currentStep === steps.length - 1 && <button type="submit">Submit</button>}
+          </div>
+
+
+
+import React from 'react';
+import { useFormContext, useFieldArray, Controller } from 'react-hook-form';
+
+const Experience: React.FC = () => {
+  const { control } = useFormContext();
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: 'experience',
+  });
+
+  return (
+    <div>
+      <h2>Experience</h2>
+      {fields.map((item, index) => (
+        <div key={item.id}>
+          <Controller
+            name={`experience[${index}].designation`}
+            control={control}
+            defaultValue={item.designation}
+            render={({ field, fieldState: { error } }) => (
+              <div>
+                <input {...field} placeholder="Designation" />
+                {error && <span>{error.message}</span>}
+              </div>
+            )}
+          />
+          <Controller
+            name={`experience[${index}].companyName`}
+            control={control}
+            defaultValue={item.companyName}
+            render={({ field, fieldState: { error } }) => (
+              <div>
+                <input {...field} placeholder="Company Name" />
+                {error && <span>{error.message}</span>}
+              </div>
+            )}
+          />
+          <Controller
+            name={`experience[${index}].fromDate`}
+            control={control}
+            defaultValue={item.fromDate}
+            render={({ field, fieldState: { error } }) => (
+              <div>
+                <input {...field} placeholder="From Date" type="date" />
+                {error && <span>{error.message}</span>}
+              </div>
+            )}
+          />
+          <Controller
+            name={`experience[${index}].toDate`}
+            control={control}
+            defaultValue={item.toDate}
+            render={({ field, fieldState: { error } }) => (
+              <div>
+                <input {...field} placeholder="To Date" type="date" />
+                {error && <span>{error.message}</span>}
+              </div>
+            )}
+          />
+          <button type="button" onClick={() => remove(index)}>
+            Remove Experience
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={() =>
+          append({ designation: '', companyName: '', fromDate: '', toDate: '' })
+        }
+      >
+        Add Experience
+      </button>
+    </div>
+  );
+};
+
+export default Experience;
+
+
+
+import React from 'react';
+import { useFormContext, useFieldArray, Controller } from 'react-hook-form';
+
+const Education: React.FC = () => {
+  const { control, watch, trigger } = useFormContext();
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: 'education',
+  });
+
+  const education = watch('education');
+
+  const validateEducation = (value, index, field) => {
+    const currentEducation = education[index];
+    const { qualification, university, graduationYear, percentage } = currentEducation;
+
+    if (field === 'qualification' && value.trim() !== '') {
+      return university.trim() !== '' && graduationYear !== '' && percentage !== '';
+    }
+
+    if (field === 'university' && value.trim() !== '') {
+      return qualification.trim() !== '' && graduationYear !== '' && percentage !== '';
+    }
+
+    if (field === 'graduationYear' && value !== '') {
+      return qualification.trim() !== '' && university.trim() !== '' && percentage !== '';
+    }
+
+    if (field === 'percentage' && value !== '') {
+      return qualification.trim() !== '' && university.trim() !== '' && graduationYear !== '';
+    }
+
+    return true; // Always return true for empty fields to prevent immediate validation error
+  };
+
+  return (
+    <div>
+      <h2>Education</h2>
+      {fields.map((item, index) => (
+        <div key={item.id}>
+          <Controller
+            name={`education[${index}].qualification`}
+            control={control}
+            defaultValue={item.qualification}
+            rules={{
+              validate: value => validateEducation(value, index, 'qualification'),
+            }}
+            render={({ field, fieldState: { error } }) => (
+              <div>
+                <input
+                  {...field}
+                  placeholder="Qualification"
+                  onBlur={() => trigger(`education[${index}].qualification`)}
+                />
+                {error && <span>{error.message || 'All fields must be filled if any is filled'}</span>}
+              </div>
+            )}
+          />
+          <Controller
+            name={`education[${index}].university`}
+            control={control}
+            defaultValue={item.university}
+            rules={{
+              validate: value => validateEducation(value, index, 'university'),
+            }}
+            render={({ field, fieldState: { error } }) => (
+              <div>
+                <input
+                  {...field}
+                  placeholder="University"
+                  onBlur={() => trigger(`education[${index}].university`)}
+                />
+                {error && <span>{error.message || 'All fields must be filled if any is filled'}</span>}
+              </div>
+            )}
+          />
+          <Controller
+            name={`education[${index}].graduationYear`}
+            control={control}
+            defaultValue={item.graduationYear}
+            rules={{
+              validate: value => validateEducation(value, index, 'graduationYear'),
+            }}
+            render={({ field, fieldState: { error } }) => (
+              <div>
+                <input
+                  {...field}
+                  placeholder="Graduation Year"
+                  type="number"
+                  onBlur={() => trigger(`education[${index}].graduationYear`)}
+                />
+                {error && <span>{error.message || 'All fields must be filled if any is filled'}</span>}
+              </div>
+            )}
+          />
+          <Controller
+            name={`education[${index}].percentage`}
+            control={control}
+            defaultValue={item.percentage}
+            rules={{
+              validate: value => validateEducation(value, index, 'percentage'),
+            }}
+            render={({ field, fieldState: { error } }) => (
+              <div>
+                <input
+                  {...field}
+                  placeholder="Percentage"
+                  type="number"
+                  onBlur={() => trigger(`education[${index}].percentage`)}
+                />
+                {error && <span>{error.message || 'All fields must be filled if any is filled'}</span>}
+              </div>
+            )}
+          />
+          <button type="button" onClick={() => remove(index)}>
+            Remove Education
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={() => append({ qualification: '', university: '', graduationYear: '', percentage: '' })}
+      >
+        Add Education
+      </button>
+    </div>
+  );
+};
+
+export default Education;
+
+
+
+import React from 'react';
+import Select from 'react-select';
+import { Controller, useFormContext } from 'react-hook-form';
+
+const PreferredLocation: React.FC = () => {
+  const { control } = useFormContext();
+  const options = [
+    { value: 'new_york', label: 'New York' },
+    { value: 'san_francisco', label: 'San Francisco' },
+    { value: 'los_angeles', label: 'Los Angeles' },
+    // Add more options as needed
+  ];
+
+  return (
+    <div>
+      <h2>Preferred Location</h2>
+      <Controller
+        name="preferredLocation"
+        control={control}
+        render={({ field }) => (
+          <Select
+            {...field}
+            options={options}
+            isMulti
+            onChange={(selected) => field.onChange(selected)}
+            value={field.value}
+          />
+        )}
+      />
+    </div>
+  );
+};
+
+export default PreferredLocation;
+
+
+
+
+import React from 'react';
+import { useFormContext, Controller } from 'react-hook-form';
+
+const LanguageSection = () => {
+  const { control, watch, setError, clearErrors } = useFormContext();
+  const languages = watch('languages');
+
+  React.useEffect(() => {
+    if (languages.some(lang => lang.read || lang.write || lang.speak)) {
+      clearErrors('languages');
+    } else {
+      setError('languages', { type: 'manual', message: 'At least one language must be selected' });
+    }
+  }, [languages, setError, clearErrors]);
+
+  return (
+    <div>
+      <h2>Languages</h2>
+      {languages.map((_, index) => (
+        <div key={index}>
+          <Controller
+            name={`languages[${index}].language`}
+            control={control}
+            render={({ field }) => <input type="text" {...field} placeholder="Language" />}
+          />
+          <label>
+            <input
+              type="checkbox"
+              checked={languages[index].read}
+              onChange={() => control.setValue(`languages[${index}].read`, !languages[index].read)}
+            />
+            Read
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={languages[index].write}
+              onChange={() => control.setValue(`languages[${index}].write`, !languages[index].write)}
+            />
+            Write
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={languages[index].speak}
+              onChange={() => control.setValue(`languages[${index}].speak`, !languages[index].speak)}
+            />
+            Speak
+          </label>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+export default LanguageSection;
+
+
+import React from 'react';
+import { useFormContext, Controller } from 'react-hook-form';
+
+const TechnologySection = () => {
+  const { control, watch, setError, clearErrors } = useFormContext();
+  const technologies = watch('technologies');
+
+  React.useEffect(() => {
+    if (technologies.some(tech => tech.technology && tech.experienceLevel)) {
+      clearErrors('technologies');
+    } else {
+      setError('technologies', { type: 'manual', message: 'At least one technology must be selected' });
+    }
+  }, [technologies, setError, clearErrors]);
+
+  return (
+    <div>
+      <h2>Technologies</h2>
+      {technologies.map((_, index) => (
+        <div key={index}>
+          <Controller
+            name={`technologies[${index}].technology`}
+            control={control}
+            render={({ field }) => <input type="text" {...field} placeholder="Technology" />}
+          />
+          <Controller
+            name={`technologies[${index}].experienceLevel`}
+            control={control}
+            render={({ field }) => <input type="text" {...field} placeholder="Experience Level" />}
+          />
+        </div>
+      ))}
+    </div>
+  );
+};
+
+export default TechnologySection;
+
