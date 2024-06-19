@@ -1,0 +1,319 @@
+// src/store/types.ts
+
+export interface Product {
+  id: number;
+  name: string;
+  price: number;
+  description: string;
+  // other fields as needed
+}
+
+export interface CartItem {
+  productId: number;
+  quantity: number;
+}
+
+export interface AppState {
+  products: Product[];
+  cart: CartItem[];
+}
+
+// Example of connecting ProductList component
+
+import { connect } from 'react-redux';
+import { AppState } from '../store/types';
+import { Product } from '../store/types';
+import { fetchProducts } from '../store/actions';
+
+interface Props {
+  products: Product[];
+  fetchProducts: () => void;
+}
+
+class ProductList extends React.Component<Props> {
+  componentDidMount() {
+    this.props.fetchProducts();
+  }
+
+  render() {
+    const { products } = this.props;
+
+    return (
+      <div>
+        {products.map(product => (
+          <div key={product.id}>
+            <h3>{product.name}</h3>
+            <p>{product.description}</p>
+            <p>Price: ${product.price}</p>
+            {/* Add a button to view details */}
+            <button onClick={() => this.viewProductDetails(product.id)}>View Details</button>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  viewProductDetails(productId: number) {
+    // Implement navigation or modal to show product details
+  }
+}
+
+const mapStateToProps = (state: AppState) => ({
+  products: state.products
+});
+
+const mapDispatchToProps = {
+  fetchProducts
+};
+
+export default connect(mapStateToProps, mapDispatchToProps)(ProductList);
+
+
+// src/store/actions.ts
+
+import { Dispatch } from 'redux';
+import { Product } from './types';
+
+export const FETCH_PRODUCTS = 'FETCH_PRODUCTS';
+export const ADD_TO_CART = 'ADD_TO_CART';
+export const REMOVE_FROM_CART = 'REMOVE_FROM_CART';
+
+export const fetchProducts = () => (dispatch: Dispatch) => {
+  // Simulate fetching products from an API
+  const products: Product[] = [
+    { id: 1, name: 'Product 1', price: 10, description: 'Description of Product 1' },
+    { id: 2, name: 'Product 2', price: 15, description: 'Description of Product 2' },
+    { id: 3, name: 'Product 3', price: 20, description: 'Description of Product 3' },
+  ];
+
+  dispatch({
+    type: FETCH_PRODUCTS,
+    payload: products,
+  });
+};
+
+export const addToCart = (productId: number) => ({
+  type: ADD_TO_CART,
+  payload: productId,
+});
+
+export const removeFromCart = (productId: number) => ({
+  type: REMOVE_FROM_CART,
+  payload: productId,
+});
+
+
+// src/store/reducers.ts
+
+import { combineReducers } from 'redux';
+import { Product, CartItem, FETCH_PRODUCTS, ADD_TO_CART, REMOVE_FROM_CART } from './types';
+
+interface ProductsState {
+  items: Product[];
+}
+
+const initialProductsState: ProductsState = {
+  items: [],
+};
+
+const productsReducer = (state = initialProductsState, action: any): ProductsState => {
+  switch (action.type) {
+    case FETCH_PRODUCTS:
+      return {
+        ...state,
+        items: action.payload,
+      };
+    default:
+      return state;
+  }
+};
+
+interface CartState {
+  items: CartItem[];
+}
+
+const initialCartState: CartState = {
+  items: [],
+};
+
+const cartReducer = (state = initialCartState, action: any): CartState => {
+  switch (action.type) {
+    case ADD_TO_CART:
+      const productIdToAdd = action.payload;
+      const existingItem = state.items.find(item => item.productId === productIdToAdd);
+
+      if (existingItem) {
+        return {
+          ...state,
+          items: state.items.map(item =>
+            item.productId === productIdToAdd ? { ...item, quantity: item.quantity + 1 } : item
+          ),
+        };
+      } else {
+        return {
+          ...state,
+          items: [...state.items, { productId: productIdToAdd, quantity: 1 }],
+        };
+      }
+
+    case REMOVE_FROM_CART:
+      const productIdToRemove = action.payload;
+      return {
+        ...state,
+        items: state.items.filter(item => item.productId !== productIdToRemove),
+      };
+
+    default:
+      return state;
+  }
+};
+
+const rootReducer = combineReducers({
+  products: productsReducer,
+  cart: cartReducer,
+});
+
+export default rootReducer;
+
+
+// src/components/ProductList.tsx
+
+import React, { useEffect } from 'react';
+import { connect } from 'react-redux';
+import { AppState, Product } from '../store/types';
+import { fetchProducts } from '../store/actions';
+
+interface Props {
+  products: Product[];
+  fetchProducts: () => void;
+}
+
+const ProductList: React.FC<Props> = ({ products, fetchProducts }) => {
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  const addToCart = (productId: number) => {
+    // Dispatch addToCart action here
+    console.log('Adding to cart:', productId);
+  };
+
+  return (
+    <div>
+      <h2>Products</h2>
+      {products.map(product => (
+        <div key={product.id}>
+          <h3>{product.name}</h3>
+          <p>{product.description}</p>
+          <p>Price: ${product.price}</p>
+          <button onClick={() => addToCart(product.id)}>Add to Cart</button>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const mapStateToProps = (state: AppState) => ({
+  products: state.products.items,
+});
+
+export default connect(mapStateToProps, { fetchProducts })(ProductList);
+
+
+
+// src/components/Cart.tsx
+
+import React from 'react';
+import { connect } from 'react-redux';
+import { AppState, CartItem } from '../store/types';
+import { removeFromCart } from '../store/actions';
+
+interface Props {
+  cartItems: CartItem[];
+  removeFromCart: (productId: number) => void;
+}
+
+const Cart: React.FC<Props> = ({ cartItems, removeFromCart }) => {
+  const removeItem = (productId: number) => {
+    // Dispatch removeFromCart action here
+    console.log('Removing from cart:', productId);
+  };
+
+  return (
+    <div>
+      <h2>Shopping Cart</h2>
+      {cartItems.length === 0 ? (
+        <p>Your cart is empty.</p>
+      ) : (
+        <ul>
+          {cartItems.map(item => (
+            <li key={item.productId}>
+              <p>Product ID: {item.productId}</p>
+              <p>Quantity: {item.quantity}</p>
+              <button onClick={() => removeItem(item.productId)}>Remove</button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+};
+
+const mapStateToProps = (state: AppState) => ({
+  cartItems: state.cart.items,
+});
+
+export default connect(mapStateToProps, { removeFromCart })(Cart);
+
+
+// src/App.tsx
+
+import React from 'react';
+import { Provider } from 'react-redux';
+import store from './store';
+import ProductList from './components/ProductList';
+import Cart from './components/Cart';
+
+const App: React.FC = () => {
+  return (
+    <Provider store={store}>
+      <div className="App">
+        <h1>E-commerce App</h1>
+        <div style={{ display: 'flex' }}>
+          <div style={{ flex: 1 }}>
+            <ProductList />
+          </div>
+          <div style={{ flex: 1 }}>
+            <Cart />
+          </div>
+        </div>
+      </div>
+    </Provider>
+  );
+};
+
+export default App;
+
+// src/store/index.ts
+
+import { createStore, applyMiddleware } from 'redux';
+import thunk from 'redux-thunk';
+import rootReducer from './reducers';
+
+const store = createStore(rootReducer, applyMiddleware(thunk));
+
+export default store;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
