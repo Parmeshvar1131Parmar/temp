@@ -1,0 +1,331 @@
+import { Model, DataTypes } from 'sequelize';
+import { sequelize } from '../config/database';
+
+class BasicDetails extends Model {
+    public id!: number;
+    public fullName!: string;
+    public email!: string;
+    public phoneNumber!: string;
+    public dateOfBirth!: Date;
+
+    public readonly createdAt!: Date;
+    public readonly updatedAt!: Date;
+}
+
+BasicDetails.init({
+    id: {
+        type: DataTypes.INTEGER.UNSIGNED,
+        autoIncrement: true,
+        primaryKey: true,
+    },
+    fullName: {
+        type: DataTypes.STRING,
+        allowNull: false,
+    },
+    email: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        unique: true,
+        validate: {
+            isEmail: true,
+        },
+    },
+    phoneNumber: {
+        type: DataTypes.STRING(10),
+        allowNull: false,
+        validate: {
+            isNumeric: true,
+            len: [10, 10],
+        },
+    },
+    dateOfBirth: {
+        type: DataTypes.DATEONLY,
+        allowNull: false,
+    },
+}, {
+    sequelize,
+    modelName: 'BasicDetails',
+    tableName: 'basic_details',
+});
+
+export default BasicDetails;
+
+
+
+
+import { Sequelize } from 'sequelize';
+
+export const sequelize = new Sequelize('database_name', 'username', 'password', {
+    host: 'localhost',
+    dialect: 'mysql',
+});
+
+// Test the connection
+async function testConnection() {
+    try {
+        await sequelize.authenticate();
+        console.log('Connection to the database has been established successfully.');
+    } catch (error) {
+        console.error('Unable to connect to the database:', error);
+    }
+}
+
+testConnection();
+
+export default sequelize;
+
+
+
+import express, { Request, Response } from 'express';
+import BasicDetails from '../models/BasicDetails';
+
+const router = express.Router();
+
+// Create basic details
+router.post('/', async (req: Request, res: Response) => {
+    try {
+        const { fullName, email, phoneNumber, dateOfBirth } = req.body;
+        const basicDetails = await BasicDetails.create({
+            fullName,
+            email,
+            phoneNumber,
+            dateOfBirth,
+        });
+        res.status(201).json(basicDetails);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// Get all basic details
+router.get('/', async (req: Request, res: Response) => {
+    try {
+        const basicDetails = await BasicDetails.findAll();
+        res.json(basicDetails);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// Get basic details by ID
+router.get('/:id', async (req: Request, res: Response) => {
+    const { id } = req.params;
+    try {
+        const basicDetails = await BasicDetails.findByPk(id);
+        if (!basicDetails) {
+            return res.status(404).json({ message: 'Basic Details not found' });
+        }
+        res.json(basicDetails);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// Update basic details
+router.put('/:id', async (req: Request, res: Response) => {
+    const { id } = req.params;
+    try {
+        const basicDetails = await BasicDetails.findByPk(id);
+        if (!basicDetails) {
+            return res.status(404).json({ message: 'Basic Details not found' });
+        }
+        const { fullName, email, phoneNumber, dateOfBirth } = req.body;
+        await basicDetails.update({
+            fullName,
+            email,
+            phoneNumber,
+            dateOfBirth,
+        });
+        res.json(basicDetails);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// Delete basic details
+router.delete('/:id', async (req: Request, res: Response) => {
+    const { id } = req.params;
+    try {
+        const basicDetails = await BasicDetails.findByPk(id);
+        if (!basicDetails) {
+            return res.status(404).json({ message: 'Basic Details not found' });
+        }
+        await basicDetails.destroy();
+        res.json({ message: 'Basic Details deleted successfully' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+export default router;
+
+
+
+import { Request, Response } from 'express';
+import BasicDetails from '../models/BasicDetails';
+
+// Create Basic Details
+export const createBasicDetails = async (req: Request, res: Response) => {
+    try {
+        const { fullName, email, phoneNumber, dateOfBirth } = req.body;
+        const basicDetails = await BasicDetails.create({
+            fullName,
+            email,
+            phoneNumber,
+            dateOfBirth,
+        });
+        res.status(201).json(basicDetails);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// Get all Basic Details
+export const getAllBasicDetails = async (req: Request, res: Response) => {
+    try {
+        const basicDetails = await BasicDetails.findAll();
+        res.json(basicDetails);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// Get Basic Details by ID
+export const getBasicDetailsById = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    try {
+        const basicDetails = await BasicDetails.findByPk(id);
+        if (!basicDetails) {
+            return res.status(404).json({ message: 'Basic Details not found' });
+        }
+        res.json(basicDetails);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// Update Basic Details
+export const updateBasicDetails = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    try {
+        const basicDetails = await BasicDetails.findByPk(id);
+        if (!basicDetails) {
+            return res.status(404).json({ message: 'Basic Details not found' });
+        }
+        const { fullName, email, phoneNumber, dateOfBirth } = req.body;
+        await basicDetails.update({
+            fullName,
+            email,
+            phoneNumber,
+            dateOfBirth,
+        });
+        res.json(basicDetails);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// Delete Basic Details
+export const deleteBasicDetails = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    try {
+        const basicDetails = await BasicDetails.findByPk(id);
+        if (!basicDetails) {
+            return res.status(404).json({ message: 'Basic Details not found' });
+        }
+        await basicDetails.destroy();
+        res.json({ message: 'Basic Details deleted successfully' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+
+
+
+import React, { useState } from 'react';
+
+const BasicDetailsForm: React.FC = () => {
+    const [fullName, setFullName] = useState('');
+    const [email, setEmail] = useState('');
+    const [phoneNumber, setPhoneNumber] = useState('');
+    const [dateOfBirth, setDateOfBirth] = useState('');
+
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        try {
+            const response = await fetch('http://localhost:3000/basicDetails', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    fullName,
+                    email,
+                    phoneNumber,
+                    dateOfBirth,
+                }),
+            });
+            if (response.ok) {
+                console.log('Basic details submitted successfully');
+                // Reset form fields after successful submission if needed
+                setFullName('');
+                setEmail('');
+                setPhoneNumber('');
+                setDateOfBirth('');
+            } else {
+                console.error('Failed to submit basic details');
+            }
+        } catch (error) {
+            console.error('Failed to submit basic details:', error);
+        }
+    };
+
+    return (
+        <form onSubmit={handleSubmit}>
+            <input
+                type="text"
+                placeholder="Full Name"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                required
+            />
+            <input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+            />
+            <input
+                type="tel"
+                placeholder="Phone Number"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                required
+            />
+            <input
+                type="date"
+                placeholder="Date of Birth"
+                value={dateOfBirth}
+                onChange={(e) => setDateOfBirth(e.target.value)}
+                required
+            />
+            <button type="submit">Submit</button>
+        </form>
+    );
+};
+
+export default BasicDetailsForm;
+
+
