@@ -1,0 +1,77 @@
+// models/GenreItem.ts
+import { Model, DataTypes } from 'sequelize';
+import sequelize from '../config/database';
+
+class GenreItem extends Model {
+  public id!: number;
+  public genreId!: number;
+  public genreType!: string; // 'Movie' or 'Series'
+  public genreItemId!: number;
+
+  // Other attributes
+}
+
+GenreItem.init({
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true,
+  },
+  genreId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+  genreType: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  genreItemId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+}, {
+  sequelize,
+  modelName: 'GenreItem',
+});
+
+export default GenreItem;
+
+
+// models/Movie.ts
+import { BelongsToManyGetAssociationsMixin, Model, DataTypes } from 'sequelize';
+import sequelize from '../config/database';
+import GenreItem from './GenreItem';
+
+class Movie extends Model {
+  public id!: number;
+  public title!: string;
+
+  public getGenres!: BelongsToManyGetAssociationsMixin<Genre>; // Add this if you need to fetch genres
+
+  // Other attributes and methods
+}
+
+Movie.init({
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true,
+  },
+  title: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  // Define other attributes here
+}, {
+  sequelize,
+  modelName: 'Movie',
+});
+
+Movie.belongsToMany(Genre, { through: GenreItem, foreignKey: 'genreItemId', constraints: false });
+Genre.belongsToMany(Movie, { through: GenreItem, foreignKey: 'genreId', constraints: false });
+
+export default Movie;
+
+
+
+
