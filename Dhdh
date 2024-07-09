@@ -1,0 +1,124 @@
+import React from 'react';
+
+const MovieCard = ({ movie }) => {
+  return (
+    <div className="max-w-xs rounded overflow-hidden shadow-lg bg-white">
+      <img className="w-full" src={movie.posterUrl} alt={movie.title} />
+      <div className="px-6 py-4">
+        <div className="font-bold text-xl mb-2">{movie.title}</div>
+        <p className="text-gray-700 text-base">{movie.description}</p>
+      </div>
+      <div className="px-6 py-4">
+        {movie.genres.map((genre, index) => (
+          <span key={index} className="inline-block bg-gray-200 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 mr-2 mb-2">
+            {genre}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default MovieCard;
+
+
+import React from 'react';
+import MovieCard from './MovieCard';
+
+const movies = [
+  {
+    title: 'Inception',
+    description: 'A thief who steals corporate secrets through the use of dream-sharing technology.',
+    posterUrl: 'https://example.com/posters/inception.jpg',
+    genres: ['Action', 'Sci-Fi', 'Thriller']
+  },
+  {
+    title: 'The Shawshank Redemption',
+    description: 'Two imprisoned men bond over a number of years, finding solace and eventual redemption through acts of common decency.',
+    posterUrl: 'https://example.com/posters/shawshank_redemption.jpg',
+    genres: ['Drama']
+  }
+];
+
+const MovieList = () => {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {movies.map((movie, index) => (
+        <MovieCard key={index} movie={movie} />
+      ))}
+    </div>
+  );
+};
+
+export default MovieList;
+
+
+
+
+
+import React from 'react';
+import MovieCard from './MovieCard'; // Assuming you have already created MovieCard component
+
+const HomePage = () => {
+  // Sample movie data (replace with actual data or fetch from API)
+  const movies = [
+    {
+      id: 1,
+      title: 'Inception',
+      description: 'A thief who steals corporate secrets through the use of dream-sharing technology.',
+      posterUrl: 'https://example.com/posters/inception.jpg',
+      genres: ['Action', 'Sci-Fi', 'Thriller'],
+      releaseYear: 2010
+    },
+    {
+      id: 2,
+      title: 'The Shawshank Redemption',
+      description: 'Two imprisoned men bond over a number of years, finding solace and eventual redemption through acts of common decency.',
+      posterUrl: 'https://example.com/posters/shawshank_redemption.jpg',
+      genres: ['Drama'],
+      releaseYear: 1994
+    },
+    // Add more movies as needed
+  ];
+
+  return (
+    <div>
+      {/* Hero section */}
+      <div className="bg-gray-800 text-white py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight mb-8">Discover Your Next Favorite Movie</h1>
+          <p className="text-lg sm:text-xl">Explore a vast collection of movies across different genres.</p>
+        </div>
+      </div>
+
+      {/* Featured Movies section */}
+      <div className="bg-gray-100 py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-8">Featured Movies</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {movies.slice(0, 6).map((movie) => (
+              <MovieCard key={movie.id} movie={movie} />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* All Movies section (Optional) */}
+      <div className="py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-8">All Movies</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {movies.map((movie) => (
+              <MovieCard key={movie.id} movie={movie} />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default HomePage;
+
+
+
