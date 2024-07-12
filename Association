@@ -1,0 +1,227 @@
+// src/models/Image.ts
+
+import { Model, DataTypes } from 'sequelize';
+import sequelize from '../database';
+
+class Image extends Model {
+  public id!: number;
+  public imageUrl!: string;
+  public imageableId!: number;
+  public imageableType!: string;
+
+  public readonly createdAt!: Date;
+  public readonly updatedAt!: Date;
+}
+
+Image.init(
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      autoIncrement: true,
+      primaryKey: true,
+    },
+    imageUrl: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    imageableId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    imageableType: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+  },
+  {
+    sequelize,
+    modelName: 'Image',
+  }
+);
+
+export default Image;
+
+
+
+
+
+// src/models/Movie.ts
+
+import { Model, DataTypes } from 'sequelize';
+import sequelize from '../database';
+import Image from './Image';
+
+class Movie extends Model {
+  public id!: number;
+  public title!: string;
+
+  // Other attributes here
+
+  public readonly createdAt!: Date;
+  public readonly updatedAt!: Date;
+}
+
+Movie.init(
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      autoIncrement: true,
+      primaryKey: true,
+    },
+    title: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    // Define other attributes of Movie model
+  },
+  {
+    sequelize,
+    modelName: 'Movie',
+  }
+);
+
+// Define associations
+Movie.hasMany(Image, {
+  foreignKey: 'imageableId',
+  constraints: false,
+  scope: {
+    imageableType: 'movie',
+  },
+  as: 'images',
+});
+
+export default Movie;
+
+
+
+
+
+// src/models/Actor.ts
+
+import { Model, DataTypes } from 'sequelize';
+import sequelize from '../database';
+import Image from './Image';
+
+class Actor extends Model {
+  public id!: number;
+  public name!: string;
+
+  // Other attributes here
+
+  public readonly createdAt!: Date;
+  public readonly updatedAt!: Date;
+}
+
+Actor.init(
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      autoIncrement: true,
+      primaryKey: true,
+    },
+    name: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    // Define other attributes of Actor model
+  },
+  {
+    sequelize,
+    modelName: 'Actor',
+  }
+);
+
+// Define associations
+Actor.hasMany(Image, {
+  foreignKey: 'imageableId',
+  constraints: false,
+  scope: {
+    imageableType: 'actor',
+  },
+  as: 'images',
+});
+
+export default Actor;
+
+
+
+// src/models/Image.ts
+
+import { Model, DataTypes } from 'sequelize';
+import sequelize from '../database';
+
+class Image extends Model {
+  public id!: number;
+  public imageUrl!: string;
+  public imageableId!: number;
+  public imageableType!: string;
+
+  public readonly createdAt!: Date;
+  public readonly updatedAt!: Date;
+}
+
+Image.init(
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      autoIncrement: true,
+      primaryKey: true,
+    },
+    imageUrl: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    imageableId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    imageableType: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+  },
+  {
+    sequelize,
+    modelName: 'Image',
+  }
+);
+
+export default Image;
+
+
+
+
+// Usage example in your application
+import sequelize from './database';
+import Movie from './models/Movie';
+import Actor from './models/Actor';
+import Image from './models/Image';
+
+// Sync models with database
+(async () => {
+  try {
+    await sequelize.sync({ force: true }); // This will drop existing tables and re-create them
+
+    // Create sample data
+    const movie = await Movie.create({ title: 'Inception' });
+    const actor = await Actor.create({ name: 'Leonardo DiCaprio' });
+
+    // Create images associated with movie and actor
+    await Image.create({ imageUrl: 'image-url-for-movie', imageableId: movie.id, imageableType: 'movie' });
+    await Image.create({ imageUrl: 'image-url-for-actor', imageableId: actor.id, imageableType: 'actor' });
+
+    // Retrieve images associated with a movie
+    const movieWithImages = await Movie.findByPk(movie.id, { include: 'images' });
+    console.log(movieWithImages?.images); // Array of images associated with the movie
+
+    // Retrieve images associated with an actor
+    const actorWithImages = await Actor.findByPk(actor.id, { include: 'images' });
+    console.log(actorWithImages?.images); // Array of images associated with the actor
+
+  } catch (error) {
+    console.error('Error occurred while syncing models:', error);
+  }
+})();
+
+
+
