@@ -81,3 +81,86 @@ const HeaderCarousel = () => {
 };
 
 export default HeaderCarousel;
+
+
+
+
+import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { FaBars, FaTimes } from 'react-icons/fa';
+
+const navigation = [
+  { name: 'Home', href: '/', current: true },
+  { name: 'Movie', href: '#', current: false },
+  { name: 'Series', href: '#', current: false },
+  { name: 'WatchList', href: '/watchlist', current: false },
+  { name: 'Like', href: '#', current: false },
+  { name: 'Profile', href: '#', current: false },
+];
+
+const CommonHeader = () => {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  return (
+    <header className="bg-black text-white shadow-md sticky top-0 z-50">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="relative flex h-16 items-center justify-between">
+          <div className="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
+            <div className="flex flex-shrink-0 items-center">
+              <img alt="Movie Logo" src="Logo" className="h-8 w-auto" />
+            </div>
+            <div className="hidden sm:ml-6 sm:block w-full">
+              <nav className="flex space-x-6 text-lg font-semibold">
+                {navigation.map((item) => (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    aria-current={item.current ? 'page' : undefined}
+                    className={`hover:text-red-500 ${
+                      item.current ? 'text-red-500' : 'text-gray-300'
+                    }`}
+                  >
+                    {item.name}
+                  </Link>
+                ))}
+              </nav>
+            </div>
+          </div>
+          <div className="absolute right-4 top-4 sm:hidden">
+            <button
+              type="button"
+              className="text-gray-300 hover:text-white"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? <FaTimes size={24} /> : <FaBars size={24} />}
+            </button>
+          </div>
+          <div
+            className={`fixed inset-0 bg-black bg-opacity-75 z-40 transition-transform transform ${
+              mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
+            }`}
+          >
+            <div className="flex flex-col h-full p-8 space-y-6 text-center">
+              {navigation.map((item) => (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  aria-current={item.current ? 'page' : undefined}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`text-lg font-semibold ${
+                    item.current ? 'text-red-500' : 'text-gray-300'
+                  } hover:text-red-500`}
+                >
+                  {item.name}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+};
+
+export default CommonHeader;
+
