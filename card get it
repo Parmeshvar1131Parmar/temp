@@ -1,0 +1,92 @@
+import { useState } from 'react';
+import { AiOutlineVideoCameraAdd } from 'react-icons/ai';
+import { BsBookmarkHeart, BsBookmarkHeartFill } from 'react-icons/bs';
+
+const Card = ({
+  id,
+  title,
+  release_year,
+  plot,
+  rating,
+  image,
+  onClick,
+  getDetails,
+  onWishlistClick,
+  isWishlisted,
+}: {
+  id?: number;
+  title?: string;
+  release_year?: number;
+  plot?: string;
+  rating?: number;
+  slug?: string;
+  image: string;
+  onClick?: () => void;
+  getDetails?: () => void;
+  onWishlistClick?: () => void;
+  isWishlisted?: boolean;
+}) => {
+  return (
+    <div className="flex items-center justify-center mt-10 w-80 ml-16">
+      <div className="mx-auto bg-white rounded-3xl shadow-xl transition-transform transform hover:scale-105 hover:shadow-2xl">
+        <div className="rounded-3xl shadow-sm w-96 relative overflow-hidden">
+          <img
+            src={image}
+            width="400"
+            height="300"
+            className="rounded-t-3xl h-96 object-cover transition-opacity duration-300 hover:opacity-80"
+            alt={title}
+          />
+          <div
+            className="absolute inset-0 bg-black bg-opacity-50 opacity-0 transition-opacity duration-300 hover:opacity-100 flex items-center justify-center cursor-pointer"
+            onClick={getDetails}
+          >
+            <div className="text-white text-center p-4">
+              <div className="font-bold text-2xl">{title}</div>
+              <div className="mt-2">{release_year}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6">
+          <div
+            className="font-bold text-2xl text-gray-800 cursor-pointer hover:text-cyan-700"
+            onClick={getDetails}
+          >
+            {title}
+          </div>
+          <span className="text-slate-400 pt-2 font-semibold">{release_year}</span>
+          <div className="h-28 mt-2">
+            <span className="line-clamp-4 text-sm font-light leading-relaxed">
+              {plot}
+            </span>
+          </div>
+          <div className="flex justify-between items-center mt-4">
+            {isWishlisted ? (
+              <BsBookmarkHeartFill
+                className="w-8 h-8 cursor-pointer text-red-500"
+                onClick={onWishlistClick}
+              />
+            ) : (
+              <BsBookmarkHeart
+                className="w-8 h-8 cursor-pointer text-gray-600 hover:text-red-500"
+                onClick={onWishlistClick}
+              />
+            )}
+            <AiOutlineVideoCameraAdd
+              className="w-8 h-8 cursor-pointer text-gray-600 hover:text-green-500"
+              onClick={onClick}
+            />
+          </div>
+
+          <div className="flex justify-between items-center mt-4">
+            <div className="text-yellow-500 text-xl font-black">IMDB Rating</div>
+            <div className="text-3xl font-bold text-slate-300">{rating}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Card;
