@@ -1,0 +1,83 @@
+import { useState } from 'react';
+import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+
+const HeaderCarousel = () => {
+  // Dummy data for demonstration
+  const dummyData = [
+    {
+      title: 'Inception',
+      plot: 'A thief who steals corporate secrets through the use of dream-sharing technology.',
+      releaseYear: 2010,
+      imdbRating: 8.8,
+      whereToWatch: 'Netflix, Amazon Prime',
+      imageURL:
+        'https://m.media-amazon.com/images/S/pv-target-images/cc72ff2193c0f7a85322aee988d6fe1ae2cd9f8800b6ff6e8462790fe2aacaf3.jpg',
+    },
+    {
+      title: 'Interstellar',
+      plot: "A team of explorers travel through a wormhole in space in an attempt to ensure humanity's survival.",
+      releaseYear: 2014,
+      imdbRating: 8.6,
+      whereToWatch: 'HBO Max, Hulu',
+      imageURL:
+        'https://m.media-amazon.com/images/S/pv-target-images/8f7cd92b0bb7ce2b0eae88ee539a52f23199c67131a8c15f0ecbc0d4e7194062.jpg',
+    },
+  ];
+
+  const [currentMovieIndex, setCurrentMovieIndex] = useState(0);
+
+  const nextSlide = () => {
+    setCurrentMovieIndex((prevIndex) =>
+      prevIndex === dummyData.length - 1 ? 0 : prevIndex + 1
+    );
+  };
+
+  const prevSlide = () => {
+    setCurrentMovieIndex((prevIndex) =>
+      prevIndex === 0 ? dummyData.length - 1 : prevIndex - 1
+    );
+  };
+
+  return (
+    <div className="relative overflow-hidden bg-black">
+      <div className="relative w-full h-96">
+        <img
+          src={dummyData[currentMovieIndex].imageURL}
+          alt={dummyData[currentMovieIndex].title}
+          className="w-full h-full object-cover transition-transform duration-700 ease-in-out"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60 transition-opacity duration-300"></div>
+        <div className="absolute inset-0 flex flex-col justify-center items-start p-8 md:p-12 lg:p-16 text-white">
+          <h2 className="text-4xl font-bold mb-2">{dummyData[currentMovieIndex].title}</h2>
+          <p className="text-lg mb-2">{dummyData[currentMovieIndex].plot}</p>
+          <p className="text-md mb-2">Release Year: {dummyData[currentMovieIndex].releaseYear}</p>
+          <p className="text-md mb-4">IMDb Rating: {dummyData[currentMovieIndex].imdbRating}</p>
+          <p className="text-md">Where to Watch: {dummyData[currentMovieIndex].whereToWatch}</p>
+        </div>
+        <button
+          className="absolute top-1/2 left-4 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-opacity duration-300"
+          onClick={prevSlide}
+        >
+          <FaChevronLeft size={24} />
+        </button>
+        <button
+          className="absolute top-1/2 right-4 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-opacity duration-300"
+          onClick={nextSlide}
+        >
+          <FaChevronRight size={24} />
+        </button>
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+          {dummyData.map((_, index) => (
+            <button
+              key={index}
+              className={`w-3 h-3 rounded-full ${currentMovieIndex === index ? 'bg-white' : 'bg-gray-500'} transition-colors duration-300`}
+              onClick={() => setCurrentMovieIndex(index)}
+            ></button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default HeaderCarousel;
