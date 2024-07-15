@@ -1,0 +1,213 @@
+// src/routes/movies.ts
+
+import express from 'express';
+import Movie from '../models/movie';
+import Genre from '../models/genre';
+import Actor from '../models/actor';
+import Director from '../models/director';
+import Image from '../models/image';
+
+const router = express.Router();
+
+router.get('/api/movies', async (req, res) => {
+  try {
+    const movies = await Movie.findAll({
+      include: [
+        {
+          model: Genre,
+          through: { attributes: [] },
+        },
+        {
+          model: Actor,
+          through: { attributes: [] },
+        },
+        {
+          model: Director,
+          through: { attributes: [] },
+        },
+        {
+          model: Image,
+          attributes: ['image_url'],
+          where: { imageableType: 'movies' },
+        },
+      ],
+    });
+
+    res.json(movies);
+  } catch (error) {
+    console.error('Error fetching movies:', error);
+    res.status(500).json({ error: 'Failed to fetch movies' });
+  }
+});
+
+export default router;
+
+
+
+// src/components/MovieList.tsx
+
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+
+interface Actor {
+  name: string;
+}
+
+interface Director {
+  name: string;
+}
+
+interface Genre {
+  name: string;
+}
+
+interface Image {
+  image_url: string;
+}
+
+interface Movie {
+  id: number;
+  title: string;
+  release_year: number;
+  plot: string;
+  rating: number;
+  duration: number;
+  slug: string;
+  genres: Genre[];
+  actors: Actor[];
+  directors: Director[];
+  images: Image[];
+}
+
+const MovieList: React.FC = () => {
+  const [movies, setMovies] = useState<Movie[]>([]);
+  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+
+  useEffect(() => {
+    const fetchMovies = async () => {
+      try {
+        const response = await axios.get('/api/movies');
+        setMovies(response.data);
+      } catch (error) {
+        console.error('Error fetching movies:', error);
+      }
+    };
+
+    fetchMovies();
+  }, []);
+
+  const openModal = (movie: Movie) => {
+    setSelectedMovie(movie);
+  };
+
+  const closeModal = () => {
+    setSelectedMovie(null);
+  };
+
+  return (
+    <div>
+      {movies.map((movie) => (
+        <div
+          key={movie.id}
+          onClick={() => openModal(movie)}
+          className="cursor-pointer"
+        >
+          <h3>{movie.title}</h3>
+          {/* Display movie details or a movie preview */}
+        </div>
+      ))}
+      {selectedMovie && (
+        <MovieModal
+          handleOpen={closeModal}
+          title={selectedMovie.title}
+          release_year={selectedMovie.release_year}
+          plot={selectedMovie.plot}
+          rating={selectedMovie.rating}
+          genres={selectedMovie.genres.map((genre) => ({ name: genre.name }))}
+          actors={selectedMovie.actors.map((actor) => ({ name: actor.name }))}
+          directors={selectedMovie.directors.map((director) => ({ name: director.name }))}
+          image={selectedMovie.images[0]?.image_url}
+        />
+      )}
+    </div>
+  );
+};
+
+export default MovieList;
+
+
+
+
+
+// src/components/MovieModal.tsx
+
+import React from 'react';
+
+interface Actor {
+  name: string;
+}
+
+interface Director {
+  name: string;
+}
+
+interface Genre {
+  name: string;
+}
+
+interface MovieModalProps {
+  handleOpen: () => void;
+  title: string;
+  release_year: number;
+  plot: string;
+  rating: number;
+  genres: Genre[];
+  actors: Actor[];
+  directors: Director[];
+  image: string;
+}
+
+const MovieModal: React.FC<MovieModalProps> = ({
+  handleOpen,
+  title,
+  release_year,
+  plot,
+  rating,
+  genres,
+  actors,
+  directors,
+  image,
+}) => {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50"
+      onClick={handleOpen}
+    >
+      <div
+        className="relative bg-white p-6 rounded-lg shadow-lg max-w-lg w-full"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          className="absolute top-2 right-2 text-2xl text-gray-700"
+          onClick={handleOpen}
+        >
+          ×
+        </button>
+        <img
+          src={image}
+          alt={title}
+          className="w-full h-48 object-cover rounded-lg mb-4"
+        />
+        <h2 className="text-2xl font-bold mb-2">{title}</h2>
+        <p className="text-gray-700 mb-2">{plot}</p>
+        <p className="text-gray-600 mb-2">Release Year: {release_year}</p>
+        <p className="text-gray-600 mb-2">Rating: {rating}</p>
+        <p className="text-gray-600 mb-2">Genres: {genres.map(g => g.name).join(', ')}</p>
+        <p className="text-gray-600 mb-2">Actors: {actors.map(a => a.name).join(', ')}</p>
+        <p className="text-gray-600 mb-2">Directors: {directors.map(d => d.name).join(', ')}</p>
+      </div>
+    </div>
+  );
+};
+
+export default MovieModal;
