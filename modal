@@ -1,0 +1,90 @@
+import { useState } from 'react';
+
+export default function Modal({
+  handleOpen,
+  id,
+  title,
+  release_year,
+  plot,
+  rating,
+  image,
+}: {
+  id?: number;
+  title?: string;
+  release_year?: number;
+  plot?: string;
+  rating?: number;
+  image: string;
+  handleOpen: () => void;
+}) {
+  const [isSaving, setIsSaving] = useState(false);
+
+  const onSaveChanges = () => {
+    // Placeholder for saving changes logic
+    setIsSaving(true);
+    setTimeout(() => {
+      setIsSaving(false);
+      handleOpen();
+    }, 1000); // Simulating async operation with setTimeout
+  };
+
+  return (
+    <div className="justify-center items-center flex overflow-x-hidden overflow-y-auto fixed inset-0 z-50 outline-none focus:outline-none">
+      <div className="relative w-full max-w-3xl mx-auto">
+        <div className="bg-white rounded-lg shadow-lg relative flex flex-col w-full outline-none focus:outline-none">
+          <div className="flex items-start justify-between p-5 border-b border-gray-200 rounded-t">
+            <h3 className="text-3xl font-semibold">{title}</h3>
+            <button
+              className="p-1 ml-auto bg-transparent border-0 text-black opacity-5 float-right text-3xl leading-none font-semibold outline-none focus:outline-none"
+              onClick={handleOpen}
+            >
+              <span className="bg-transparent text-black opacity-5 h-6 w-6 text-2xl block outline-none focus:outline-none">
+                ×
+              </span>
+            </button>
+          </div>
+          <img
+            src={image}
+            width="100%"
+            className="rounded-t-lg object-cover"
+            alt={title}
+          />
+          <div className="p-6">
+            <p className="my-4 text-gray-700 text-lg leading-relaxed">{plot}</p>
+            <div className="flex justify-between mt-4">
+              <div className="flex flex-col">
+                <span className="text-yellow-500 text-xl">IMDB Rating</span>
+                <span className="text-3xl font-bold text-gray-700">{rating}</span>
+              </div>
+              <div className="flex flex-col items-end">
+                <span className="text-3xl font-bold text-gray-700">
+                  {release_year}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center justify-end p-6 border-t border-gray-200 rounded-b">
+            <button
+              className="text-red-500 background-transparent font-bold uppercase px-6 py-2 text-sm outline-none focus:outline-none mr-4"
+              type="button"
+              onClick={handleOpen}
+            >
+              Close
+            </button>
+            <button
+              className={`bg-green-500 text-white font-bold uppercase px-6 py-3 rounded shadow hover:shadow-lg outline-none focus:outline-none ${
+                isSaving ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+              type="button"
+              onClick={onSaveChanges}
+              disabled={isSaving}
+            >
+              {isSaving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </div>
+      </div>
+      <div className="opacity-25 fixed inset-0 z-40 bg-black"></div>
+    </div>
+  );
+}
