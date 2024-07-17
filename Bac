@@ -1,0 +1,183 @@
+import MovieRepository from '../repositories/movie.repository';
+import { Movie } from '../models/movie.model';
+
+class MovieService {
+  private movieRepository: MovieRepository;
+
+  constructor(movieRepository: MovieRepository) {
+    this.movieRepository = movieRepository;
+  }
+
+  async createMovie(data: any, files: Express.Multer.File[]): Promise<Movie> {
+    const { title, release_year, rating, plot, duration, slug, genres, actors, directors } = data;
+
+    // Create the movie
+    const movie = await this.movieRepository.createMovie({
+      title,
+      release_year,
+      rating,
+      plot,
+      duration,
+      slug,
+    });
+
+    // Set genres, actors, and directors
+    await this.movieRepository.setGenres(movie, JSON.parse(genres));
+    await this.movieRepository.setActors(movie, JSON.parse(actors));
+    await this.movieRepository.setDirectors(movie, JSON.parse(directors));
+
+    // Handle images
+    for (const file of files) {
+      await this.movieRepository.addImage(movie, file.path); // Assuming file.path contains the URL to the uploaded image
+    }
+
+    return movie;
+  }
+}
+
+export default MovieService;
+
+
+import { Request, Response } from 'express';
+import MovieService from '../services/movie.service';
+import MovieRepository from '../repositories/movie.repository';
+import { Movie } from '../models/movie.model';
+
+class MovieController {
+  private movieService: MovieService;
+
+  constructor() {
+    const movieRepository = new MovieRepository(Movie);
+    this.movieService = new MovieService(movieRepository);
+  }
+
+  createMovie = async (req: Request, res: Response) => {
+    try {
+      const movie = await this.movieService.createMovie(req.body, req.files as Express.Multer.File[]);
+      res.status(201).json(movie);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Internal Server Error' });
+    }
+  };
+}
+
+export default MovieController;
+
+
+
+
+
+
+
+
+
+
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+
+const MovieForm = () => {
+  const [step, setStep] = useState(1);
+  const [title, setTitle] = useState('');
+  const [releaseYear, setReleaseYear] = useState<number>(0);
+  const [rating, setRating] = useState<number>(0);
+  const [plot, setPlot] = useState('');
+  const [duration, setDuration] = useState<number>(0);
+  const [slug, setSlug] = useState('');
+  const [genres, setGenres] = useState<number[]>([]);
+  const [actors, setActors] = useState<number[]>([]);
+  const [directors, setDirectors] = useState<number[]>([]);
+  const [images, setImages] = useState<File[]>([]);
+
+  const [availableGenres, setAvailableGenres] = useState<{ id: number; name: string }[]>([]);
+  const [availableActors, setAvailableActors] = useState<{ id: number; name: string }[]>([]);
+  const [availableDirectors, setAvailableDirectors] = useState<{ id: number; name: string }[]>([]);
+
+  useEffect(() => {
+    // Fetch genres, actors, and directors from the backend
+    axios.get('/api/genres').then(response => setAvailableGenres(response.data));
+    axios.get('/api/actors').then(response => setAvailableActors(response.data));
+    axios.get('/api/directors').then(response => setAvailableDirectors(response.data));
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('release_year', releaseYear.toString());
+    formData.append('rating', rating.toString());
+    formData.append('plot', plot);
+    formData.append('duration', duration.toString());
+    formData.append('slug', slug);
+    formData.append('genres', JSON.stringify(genres));
+    formData.append('actors', JSON.stringify(actors));
+    formData.append('directors', JSON.stringify(directors));
+
+    images.forEach((image) => formData.append('images', image));
+
+    try {
+      await axios.post('/api/movies', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      alert('Movie created successfully');
+    } catch (error) {
+      console.error('Error creating movie:', error);
+    }
+  };
+
+  const handleNext = () => setStep(step + 1);
+  const handleBack = () => setStep(step - 1);
+
+  return (
+    <form onSubmit={handleSubmit}>
+      {step === 1 && (
+        <>
+          <h2>Step 1: Movie Information</h2>
+          <input type="text" placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
+          <input type="number" placeholder="Release Year" value={releaseYear} onChange={(e) => setReleaseYear(parseInt(e.target.value))} />
+          <input type="number" placeholder="Rating" value={rating} onChange={(e) => setRating(parseFloat(e.target.value))} />
+          <textarea placeholder="Plot" value={plot} onChange={(e) => setPlot(e.target.value)} />
+          <input type="number" placeholder="Duration" value={duration} onChange={(e) => setDuration(parseInt(e.target.value))} />
+          <input type="text" placeholder="Slug" value={slug} onChange={(e) => setSlug(e.target.value)} />
+          <select multiple onChange={(e) => setGenres(Array.from(e.target.selectedOptions, option => parseInt(option.value)))}>
+            {availableGenres.map(genre => (
+              <option key={genre.id} value={genre.id}>{genre.name}</option>
+            ))}
+          </select>
+          <select multiple onChange={(e) => setActors(Array.from(e.target.selectedOptions, option => parseInt(option.value)))}>
+            {availableActors.map(actor => (
+              <option key={actor.id} value={actor.id}>{actor.name}</option>
+            ))}
+          </select>
+          <select multiple onChange={(e) => setDirectors(Array.from(e.target.selectedOptions, option => parseInt(option.value)))}>
+            {availableDirectors.map(director => (
+              <option key={director.id} value={director.id}>{director.name}</option>
+            ))}
+          </select>
+          <button type="button" onClick={handleNext}>Next</button>
+        </>
+      )}
+      {step === 2 && (
+        <>
+          <h2>Step 2: Additional Information</h2>
+          {/* Additional fields can be added here if needed */}
+          <button type="button" onClick={handleBack}>Back</button>
+          <button type="button" onClick={handleNext}>Next</button>
+        </>
+      )}
+      {step === 3 && (
+        <>
+          <h2>Step 3: Upload Images</h2>
+          <input type="file" multiple onChange={(e) => setImages(Array.from(e.target.files || []))} />
+          <button type="button" onClick={handleBack}>Back</button>
+          <button type="submit">Submit</button>
+        </>
+      )}
+    </form>
+  );
+};
+
+export default MovieForm;
