@@ -1,0 +1,210 @@
+import React, { useState, useEffect } from 'react';
+import { useAxiosPost } from './path/to/hooks';
+import axios from './path/to/axios'; // Update the import path
+
+const MovieForm = () => {
+  const [step, setStep] = useState(1);
+  const [title, setTitle] = useState('');
+  const [releaseYear, setReleaseYear] = useState<number>(0);
+  const [rating, setRating] = useState<number>(0);
+  const [plot, setPlot] = useState('');
+  const [duration, setDuration] = useState<number>(0);
+  const [slug, setSlug] = useState('');
+  const [genres, setGenres] = useState<string[]>(['']);
+  const [actors, setActors] = useState<{ name: string; nationality: string }[]>([{ name: '', nationality: '' }]);
+  const [images, setImages] = useState<string[]>(['']);
+
+  const [availableGenres, setAvailableGenres] = useState<{ id: number; name: string }[]>([]);
+  const [availableActors, setAvailableActors] = useState<{ id: number; name: string }[]>([]);
+  const [availableDirectors, setAvailableDirectors] = useState<{ id: number; name: string }[]>([]);
+
+  const [postRequest, { isLoading, isError, isSuccess }] = useAxiosPost();
+
+  useEffect(() => {
+    // Fetch genres, actors, and directors from the backend
+    axios.get('/genres').then(response => setAvailableGenres(response.data));
+    axios.get('/actors').then(response => setAvailableActors(response.data));
+    axios.get('/directors').then(response => setAvailableDirectors(response.data));
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    
+    const movieData = {
+      Movie: {
+        Title: title,
+        Releaseyear: releaseYear,
+        Plot: plot,
+      },
+      Genre: genres.map((genre) => ({ Name: genre })),
+      Actor: actors.map((actor) => ({ Name: actor.name, Nationality: actor.nationality })),
+      Image: images.map((url) => ({ url })),
+    };
+
+    try {
+      const { data, error } = await postRequest('/movies', movieData);
+
+      if (error) {
+        console.error('Error creating movie:', error);
+      } else {
+        alert('Movie created successfully');
+      }
+    } catch (error) {
+      console.error('Error creating movie:', error);
+    }
+  };
+
+  const handleNext = () => setStep(step + 1);
+  const handleBack = () => setStep(step - 1);
+
+  return (
+    <form onSubmit={handleSubmit} className="max-w-3xl mx-auto p-6 bg-white rounded-lg shadow-md">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-xl font-bold">Movie Form</h1>
+        <div className="flex space-x-2">
+          <div className={`w-8 h-8 rounded-full ${step >= 1 ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
+          <div className={`w-8 h-8 rounded-full ${step >= 2 ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
+          <div className={`w-8 h-8 rounded-full ${step >= 3 ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
+          <div className={`w-8 h-8 rounded-full ${step >= 4 ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
+        </div>
+      </div>
+      {step === 1 && (
+        <>
+          <h2 className="text-lg font-semibold mb-2">Step 1: Movie Information</h2>
+          <div className="mb-4">
+            <input
+              type="text"
+              placeholder="Title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md"
+            />
+          </div>
+          <div className="mb-4">
+            <input
+              type="number"
+              placeholder="Release Year"
+              value={releaseYear}
+              onChange={(e) => setReleaseYear(parseInt(e.target.value))}
+              className="w-full p-2 border border-gray-300 rounded-md"
+            />
+          </div>
+          <div className="mb-4">
+            <input
+              type="number"
+              placeholder="Rating"
+              value={rating}
+              onChange={(e) => setRating(parseFloat(e.target.value))}
+              className="w-full p-2 border border-gray-300 rounded-md"
+            />
+          </div>
+          <div className="mb-4">
+            <textarea
+              placeholder="Plot"
+              value={plot}
+              onChange={(e) => setPlot(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md"
+            ></textarea>
+          </div>
+          <div className="mb-4">
+            <input
+              type="number"
+              placeholder="Duration"
+              value={duration}
+              onChange={(e) => setDuration(parseInt(e.target.value))}
+              className="w-full p-2 border border-gray-300 rounded-md"
+            />
+          </div>
+          <div className="mb-4">
+            <input
+              type="text"
+              placeholder="Slug"
+              value={slug}
+              onChange={(e) => setSlug(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md"
+            />
+          </div>
+          <div className="flex justify-between">
+            <button type="button" onClick={handleBack} className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md">
+              Back
+            </button>
+            <button type="button" onClick={handleNext} className="px-4 py-2 bg-blue-500 text-white rounded-md">
+              Next
+            </button>
+          </div>
+        </>
+      )}
+      {step === 2 && (
+        <>
+          <h2 className="text-lg font-semibold mb-2">Step 2: Genre, Actor and Director</h2>
+          <div className="mb-4">
+            <label className="block mb-2">Select Genres</label>
+            <select
+              multiple
+              onChange={(e) => setGenres(Array.from(e.target.selectedOptions, (option) => option.value))}
+              className="w-full p-2 border border-gray-300 rounded-md"
+            >
+              {availableGenres.map((genre) => (
+                <option key={genre.id} value={genre.name}>
+                  {genre.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex justify-between">
+            <button type="button" onClick={handleBack} className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md">
+              Back
+            </button>
+            <button type="button" onClick={handleNext} className="px-4 py-2 bg-blue-500 text-white rounded-md">
+              Next
+            </button>
+          </div>
+        </>
+      )}
+      {step === 3 && (
+        <>
+          <h2 className="text-lg font-semibold mb-2">Step 3: Actors</h2>
+          {actors.map((actor, index) => (
+            <div key={index} className="mb-4">
+              <input
+                type="text"
+                placeholder="Actor Name"
+                value={actor.name}
+                onChange={(e) => {
+                  const newActors = [...actors];
+                  newActors[index].name = e.target.value;
+                  setActors(newActors);
+                }}
+                className="w-full p-2 border border-gray-300 rounded-md mb-2"
+              />
+              <input
+                type="text"
+                placeholder="Nationality"
+                value={actor.nationality}
+                onChange={(e) => {
+                  const newActors = [...actors];
+                  newActors[index].nationality = e.target.value;
+                  setActors(newActors);
+                }}
+                className="w-full p-2 border border-gray-300 rounded-md"
+              />
+              <button
+                type="button"
+                onClick={() => setActors([...actors, { name: '', nationality: '' }])}
+                className="mt-2 px-4 py-2 bg-green-500 text-white rounded-md"
+              >
+                Add Another Actor
+              </button>
+            </div>
+          ))}
+          <div className="flex justify-between">
+            <button type="button" onClick={handleBack} className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md">
+              Back
+            </button>
+            <button type="button" onClick={handleNext} className="px-4 py-2 bg-blue-500 text-white rounded-md">
+              Next
+            </button>
+          </div>
+        </>
+      )}
+     
