@@ -1,0 +1,49 @@
+import React from 'react';
+import Select, { MultiValue, ActionMeta } from 'react-select';
+import { ErrorMessage, useField, useFormikContext } from 'formik';
+
+interface Option {
+  value: string;
+  label: string;
+}
+
+const options: Option[] = [
+  { value: 'Horror', label: 'Horror' },
+  { value: 'Comedy', label: 'Comedy' },
+  { value: 'Thriller', label: 'Thriller' },
+  { value: 'Fantasy', label: 'Fantasy' },
+  { value: 'Action', label: 'Action' },
+  { value: 'Drama', label: 'Drama' },
+];
+
+const Genre = () => {
+  const [field] = useField('genres');
+  const { setFieldValue } = useFormikContext();
+
+  const handleChange = (selectedOptions: MultiValue<Option>, actionMeta: ActionMeta<Option>) => {
+    setFieldValue('genres', selectedOptions);
+  };
+
+  return (
+    <>
+      <h2 className="text-white text-xl m-2 text-center">Step 2: Genre</h2>
+      <Select
+        name="genres"
+        options={options}
+        isMulti
+        value={field.value}
+        onChange={handleChange}
+        placeholder="Select movie genre"
+        autoFocus
+        className="my-react-select-container w-[1000px]"
+        classNamePrefix="my-react-select"
+        noOptionsMessage={({ inputValue }) => `No result found for "${inputValue}"`}
+      />
+      <div className="bg-white">
+        <ErrorMessage name="genres" className="text-red-600 bg-white" component="div" />
+      </div>
+    </>
+  );
+};
+
+export default Genre;
