@@ -1,0 +1,239 @@
+import React from 'react';
+import Select from 'react-select';
+import { useField, FieldAttributes } from 'formik';
+
+type OptionType = { label: string; value: string };
+
+interface MultiSelectProps extends FieldAttributes<{}> {
+  options: OptionType[];
+}
+
+const MultiSelect: React.FC<MultiSelectProps> = ({ options, ...props }) => {
+  const [field, meta, helpers] = useField(props);
+
+  const handleChange = (selectedOptions: OptionType[]) => {
+    helpers.setValue(selectedOptions);
+  };
+
+  return (
+    <div>
+      <Select
+        {...field}
+        {...props}
+        options={options}
+        isMulti
+        onChange={handleChange}
+        value={field.value}
+      />
+      {meta.touched && meta.error ? <div className="text-red-600">{meta.error}</div> : null}
+    </div>
+  );
+};
+
+export default MultiSelect;
+
+
+
+
+
+import React, { useState, useEffect } from 'react';
+import { useFormik } from 'formik';
+import * as Yup from 'yup';
+import { useAxiosPost, useAxiosGet } from './path/to/hooks';
+import axios from './path/to/axios';
+import MultiSelect from './MultiSelect'; // Adjust the path as necessary
+
+const MovieForm = () => {
+  const [step, setStep] = useState(1);
+  const [availableGenres, setAvailableGenres] = useState<{ id: number; name: string }[]>([]);
+  const [availableActors, setAvailableActors] = useState<{ id: number; name: string }[]>([]);
+  const [postRequest, { isLoading, isError, isSuccess }] = useAxiosPost();
+  const [getRequest, { isLoading: isPermissionLoading, isError: isPermissionError, isSuccess: isPermissionSuccess }] = useAxiosGet();
+
+  useEffect(() => {
+    axios.get('/genres').then(response => setAvailableGenres(response.data));
+    axios.get('/actors').then(response => setAvailableActors(response.data));
+  }, []);
+
+  const formik = useFormik({
+    initialValues: {
+      title: '',
+      releaseYear: 0,
+      rating: 0,
+      plot: '',
+      duration: 0,
+      slug: '',
+      genres: [],
+      actors: [{ name: '', nationality: '' }],
+      images: [],
+    },
+    validationSchema: Yup.object({
+      title: Yup.string().required('Title is required'),
+      releaseYear: Yup.number().required('Release year is required').min(1900, 'Year must be greater than 1900'),
+      rating: Yup.number().required('Rating is required').min(0, 'Rating must be at least 0').max(10, 'Rating must be at most 10'),
+      plot: Yup.string().required('Plot is required'),
+      duration: Yup.number().required('Duration is required').positive('Duration must be positive'),
+      slug: Yup.string().required('Slug is required'),
+      genres: Yup.array().min(1, 'At least one genre is required').required('Genres are required'),
+      actors: Yup.array().of(
+        Yup.object().shape({
+          name: Yup.string().required('Actor name is required'),
+          nationality: Yup.string().required('Actor nationality is required'),
+        })
+      ).min(1, 'At least one actor is required'),
+      images: Yup.array().of(Yup.string()).required('At least one image is required'),
+    }),
+    onSubmit: async (values) => {
+      const movieData = {
+        Movie: {
+          Title: values.title,
+          Releaseyear: values.releaseYear,
+          Plot: values.plot,
+        },
+        Genre: values.genres.map((genre: { label: string, value: string }) => ({ Name: genre.label })),
+        Actor: values.actors.map((actor) => ({ Name: actor.name, Nationality: actor.nationality })),
+        Image: values.images.map((url) => ({ url })),
+      };
+
+      try {
+        const { data, error } = await postRequest('/movies', movieData);
+
+        if (error) {
+          console.error('Error creating movie:', error);
+        } else {
+          alert('Movie created successfully');
+        }
+      } catch (error) {
+        console.error('Error creating movie:', error);
+      }
+    },
+  });
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    formik.setFieldValue('images', files.map(file => URL.createObjectURL(file)));
+  };
+
+  const handleActorChange = (index: number, field: string, value: string) => {
+    const newActors = [...formik.values.actors];
+    newActors[index][field] = value;
+    formik.setFieldValue('actors', newActors);
+  };
+
+  const addActor = () => {
+    formik.setFieldValue('actors', [...formik.values.actors, { name: '', nationality: '' }]);
+  };
+
+  const genreOptions = availableGenres.map(genre => ({ label: genre.name, value: genre.name }));
+
+  return (
+    <form onSubmit={formik.handleSubmit}>
+      {step === 1 && (
+        <>
+          <h2>Step 1: Movie Information</h2>
+          <input
+            type="text"
+            name="title"
+            placeholder="Title"
+            value={formik.values.title}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+          />
+          {formik.errors.title && formik.touched.title && <div>{formik.errors.title}</div>}
+
+          <input
+            type="number"
+            name="releaseYear"
+            placeholder="Release Year"
+            value={formik.values.releaseYear}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+          />
+          {formik.errors.releaseYear && formik.touched.releaseYear && <div>{formik.errors.releaseYear}</div>}
+
+          <input
+            type="number"
+            name="rating"
+            placeholder="Rating"
+            value={formik.values.rating}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+          />
+          {formik.errors.rating && formik.touched.rating && <div>{formik.errors.rating}</div>}
+
+          <textarea
+            name="plot"
+            placeholder="Plot"
+            value={formik.values.plot}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+          />
+          {formik.errors.plot && formik.touched.plot && <div>{formik.errors.plot}</div>}
+
+          <input
+            type="number"
+            name="duration"
+            placeholder="Duration"
+            value={formik.values.duration}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+          />
+          {formik.errors.duration && formik.touched.duration && <div>{formik.errors.duration}</div>}
+
+          <input
+            type="text"
+            name="slug"
+            placeholder="Slug"
+            value={formik.values.slug}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+          />
+          {formik.errors.slug && formik.touched.slug && <div>{formik.errors.slug}</div>}
+
+          <MultiSelect
+            name="genres"
+            options={genreOptions}
+            onChange={value => formik.setFieldValue('genres', value)}
+            value={formik.values.genres}
+          />
+          {formik.errors.genres && formik.touched.genres && <div>{formik.errors.genres}</div>}
+
+          <button type="button" onClick={() => setStep(step + 1)}>Next</button>
+        </>
+      )}
+      {step === 2 && (
+        <>
+          <h2>Step 2: Actors</h2>
+          {formik.values.actors.map((actor, index) => (
+            <div key={index}>
+              <input
+                type="text"
+                placeholder="Actor Name"
+                value={actor.name}
+                onChange={(e) => handleActorChange(index, 'name', e.target.value)}
+              />
+              <input
+                type="text"
+                placeholder="Nationality"
+                value={actor.nationality}
+                onChange={(e) => handleActorChange(index, 'nationality', e.target.value)}
+              />
+              <button type="button" onClick={addActor}>Add Another Actor</button>
+            </div>
+          ))}
+          {formik.errors.actors && formik.touched.actors && <div>{formik.errors.actors}</div>}
+          <button type="button" onClick={() => setStep(step - 1)}>Back</button>
+          <button type="button" onClick={() => setStep(step + 1)}>Next</button>
+        </>
+      )}
+      {step === 3 && (
+        <>
+          <h2>Step 3: Upload Images</h2>
+          <input
+            type="file"
+            multiple
+            onChange={handleFileChange}
+          />
+          {formik.errors.images && formik.touched.images && <div>{formik.errors.images}</div>}
+          <button type="button" onClick={()
+
