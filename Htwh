@@ -1,0 +1,43 @@
+import React from 'react';
+import Select from 'react-select';
+import { useField, useFormikContext } from 'formik';
+
+interface Option {
+  value: string;
+  label: string;
+}
+
+interface MultiSelectProps {
+  label: string;
+  name: string;
+  options: Option[];
+}
+
+const MultiSelect: React.FC<MultiSelectProps> = ({ label, name, options }) => {
+  const { setFieldValue } = useFormikContext();
+  const [field, meta] = useField(name);
+
+  const handleChange = (selectedOptions: Option[]) => {
+    setFieldValue(name, selectedOptions);
+  };
+
+  return (
+    <div className="mb-4">
+      <label htmlFor={name} className="block text-sm font-medium text-gray-700">
+        {label}
+      </label>
+      <Select
+        id={name}
+        options={options}
+        isMulti
+        onChange={handleChange}
+        value={field.value}
+      />
+      {meta.touched && meta.error ? (
+        <div className="text-red-500 text-sm">{meta.error}</div>
+      ) : null}
+    </div>
+  );
+};
+
+export default MultiSelect;
