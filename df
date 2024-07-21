@@ -1,0 +1,48 @@
+const onSubmit = async (values: FormikValues) => {
+  if (step !== 5) {
+    setStep(step + 1);
+  } else {
+    const formData = new FormData();
+    values.images.forEach((file: File) => formData.append('images', file));
+
+    const movieData = {
+      movie: {
+        title: values.title,
+        release_year: values.release_year,
+        rating: values.rating,
+        duration: values.duration,
+        plot: values.plot,
+      },
+      genre: values.genres.map((t: { value: string; label: string }) => t.value),
+      actor: {
+        name: values.actorName,
+        nationality: values.actorNationality,
+        birth_date: values.actorBirthDate,
+        bio: values.actorBio,
+      },
+      director: {
+        name: values.directorName,
+        nationality: values.directorNationality,
+        birth_date: values.directorBirthDate,
+        bio: values.directorBio,
+      },
+    };
+
+    formData.append('movieData', JSON.stringify(movieData));
+
+    try {
+      const { data, error } = await MoviePostApi('/api/movies', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      if (error) {
+        console.error('Error creating movie:', error);
+      } else {
+        alert('Movie created successfully');
+      }
+    } catch (error) {
+      console.error('Error creating movie:', error);
+    }
+  }
+};
