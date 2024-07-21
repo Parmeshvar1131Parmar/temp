@@ -46,3 +46,66 @@ const onSubmit = async (values: FormikValues) => {
     }
   }
 };
+
+
+
+// Update your imports to include necessary packages for parsing FormData
+import multer from 'multer';
+import Movie from '@/sequelizeDir/models/movie';
+import Genre from '@/sequelizeDir/models/genre';
+import Actor from '@/sequelizeDir/models/actor';
+import Director from '@/sequelizeDir/models/director';
+import Image from '@/sequelizeDir/models/image';
+import MovieGenre from '@/sequelizeDir/models/movie_genre';
+import MovieActor from '@/sequelizeDir/models/movie_actor';
+import MovieDirector from '@/sequelizeDir/models/movie_director';
+import { generateSlug } from '@/utils';
+import { logger } from '@/utils/logger';
+
+// Configure Multer for file uploads
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
+
+// Endpoint to create a movie with the form data
+app.post('/api/movies', upload.array('images'), async (req, res) => {
+  const movieData = JSON.parse(req.body.movieData);
+  const files = req.files;
+
+  try {
+    const slug = await generateSlug('movie', Movie);
+    
+    // Create movie entry
+    const movie = await Movie.create({
+      ...movieData.movie,
+      slug,
+    });
+
+    // Handle genres
+    for (const genreName of movieData.genre) {
+      const [genre] = await Genre.findOrCreate({ where: { name: genreName } });
+      await MovieGenre.create({ movieId: movie.id, genreId: genre.id });
+    }
+
+    // Handle actors
+    const actor = await Actor.create(movieData.actor);
+    await MovieActor.create({ movieId: movie.id, actorId: actor.id });
+
+    // Handle directors
+    const director = await Director.create(movieData.director);
+    await MovieDirector.create({ movieId: movie.id, directorId: director.id });
+
+    // Handle images
+    for (const file of files) {
+      await Image.create({
+        image_url: `/uploads/${file.filename}`,  // Save path or upload to a storage service
+        movieId: movie.id,
+      });
+    }
+
+    res.status(201).json(movie);
+  } catch (error) {
+    logger.error('Error creating movie:', error);
+    res.status(500).json({ error: 'Error creating movie' });
+  }
+});
+
