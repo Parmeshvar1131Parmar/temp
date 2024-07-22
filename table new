@@ -1,0 +1,197 @@
+import React, { useState, useEffect } from 'react';
+import { useFormik } from 'formik';
+import * as Yup from 'yup';
+import { FaEye, FaEdit, FaTrash } from 'react-icons/fa';
+
+interface Movie {
+  id: number;
+  title: string;
+  release_year: number;
+  rating: number;
+  duration: number;
+}
+
+interface MovieTableProps {
+  movies: Movie[];
+  onView: (id: number) => void;
+  onEdit: (id: number) => void;
+  onDelete: (id: number) => void;
+}
+
+const MovieTable: React.FC<MovieTableProps> = ({ movies, onView, onEdit, onDelete }) => {
+  const [sortedMovies, setSortedMovies] = useState<Movie[]>([]);
+  const [sortConfig, setSortConfig] = useState<{ key: keyof Movie; direction: 'ascending' | 'descending' }>({ key: 'title', direction: 'ascending' });
+  const [currentPage, setCurrentPage] = useState(1);
+  const moviesPerPage = 10;
+
+  const formik = useFormik({
+    initialValues: {
+      searchTerm: ''
+    },
+    validationSchema: Yup.object({
+      searchTerm: Yup.string().max(50, 'Must be 50 characters or less')
+    }),
+    onSubmit: (values) => {
+      const filteredMovies = movies.filter((movie) =>
+        movie.title.toLowerCase().includes(values.searchTerm.toLowerCase())
+      );
+      setSortedMovies(filteredMovies);
+    }
+  });
+
+  useEffect(() => {
+    setSortedMovies(movies);
+  }, [movies]);
+
+  const requestSort = (key: keyof Movie) => {
+    let direction: 'ascending' | 'descending' = 'ascending';
+    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+
+    const sortedData = [...sortedMovies].sort((a, b) => {
+      if (a[key] < b[key]) {
+        return direction === 'ascending' ? -1 : 1;
+      }
+      if (a[key] > b[key]) {
+        return direction === 'ascending' ? 1 : -1;
+      }
+      return 0;
+    });
+
+    setSortedMovies(sortedData);
+  };
+
+  // Pagination logic
+  const indexOfLastMovie = currentPage * moviesPerPage;
+  const indexOfFirstMovie = indexOfLastMovie - moviesPerPage;
+  const currentMovies = sortedMovies.slice(indexOfFirstMovie, indexOfLastMovie);
+
+  const totalPages = Math.ceil(sortedMovies.length / moviesPerPage);
+
+  return (
+    <div>
+      <h1 className="text-2xl mb-4 font-bold">Movies</h1>
+      <form onSubmit={formik.handleSubmit} className="mb-4 flex items-center">
+        <input
+          id="searchTerm"
+          name="searchTerm"
+          type="text"
+          onChange={formik.handleChange}
+          onBlur={formik.handleBlur}
+          value={formik.values.searchTerm}
+          placeholder="Search movies..."
+          className="p-2 border border-gray-300 rounded w-full max-w-md"
+        />
+        <button type="submit" className="ml-2 p-2 bg-blue-500 text-white rounded">Search</button>
+      </form>
+      <div className="overflow-x-auto">
+        <table className="min-w-full bg-white shadow-md rounded-lg">
+          <thead>
+            <tr>
+              <th
+                onClick={() => requestSort('title')}
+                className="p-4 border-b-2 border-gray-300 cursor-pointer text-left"
+              >
+                Title
+              </th>
+              <th
+                onClick={() => requestSort('release_year')}
+                className="p-4 border-b-2 border-gray-300 cursor-pointer text-left"
+              >
+                Release Year
+              </th>
+              <th
+                onClick={() => requestSort('rating')}
+                className="p-4 border-b-2 border-gray-300 cursor-pointer text-left"
+              >
+                Rating
+              </th>
+              <th
+                onClick={() => requestSort('duration')}
+                className="p-4 border-b-2 border-gray-300 cursor-pointer text-left"
+              >
+                Duration
+              </th>
+              <th className="p-4 border-b-2 border-gray-300 text-left">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {currentMovies.map((movie) => (
+              <tr key={movie.id} className="hover:bg-gray-100">
+                <td className="p-4 border-b border-gray-200">{movie.title}</td>
+                <td className="p-4 border-b border-gray-200">{movie.release_year}</td>
+                <td className="p-4 border-b border-gray-200">{movie.rating}</td>
+                <td className="p-4 border-b border-gray-200">{movie.duration}</td>
+                <td className="p-4 border-b border-gray-200 flex space-x-2">
+                  <button onClick={() => onView(movie.id)} className="text-blue-500 hover:text-blue-700">
+                    <FaEye />
+                  </button>
+                  <button onClick={() => onEdit(movie.id)} className="text-yellow-500 hover:text-yellow-700">
+                    <FaEdit />
+                  </button>
+                  <button onClick={() => onDelete(movie.id)} className="text-red-500 hover:text-red-700">
+                    <FaTrash />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex justify-between mt-4">
+        <button
+          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+          disabled={currentPage === 1}
+          className={`p-2 rounded ${currentPage === 1 ? 'bg-gray-300' : 'bg-blue-500 text-white'} `}
+        >
+          Previous
+        </button>
+        <span className="text-lg">Page {currentPage} of {totalPages}</span>
+        <button
+          onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+          disabled={currentPage === totalPages}
+          className={`p-2 rounded ${currentPage === totalPages ? 'bg-gray-300' : 'bg-blue-500 text-white'} `}
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default MovieTable;
+
+
+
+import React, { useState } from 'react';
+import MovieTable from './MovieTable';
+
+const ParentComponent = () => {
+  const [movies, setMovies] = useState<Movie[]>([
+    // Initial movies data here
+  ]);
+
+  const handleView = (id: number) => {
+    console.log(`View movie with id ${id}`);
+    // Implement the view logic here
+  };
+
+  const handleEdit = (id: number) => {
+    console.log(`Edit movie with id ${id}`);
+    // Implement the edit logic here
+  };
+
+  const handleDelete = (id: number) => {
+    console.log(`Delete movie with id ${id}`);
+    // Implement the delete logic here
+    setMovies(movies.filter(movie => movie.id !== id));
+  };
+
+  return (
+    <MovieTable movies={movies} onView={handleView} onEdit={handleEdit} onDelete={handleDelete} />
+  );
+};
+
+export default ParentComponent;
