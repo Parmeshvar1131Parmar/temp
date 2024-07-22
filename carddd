@@ -1,0 +1,203 @@
+import { useAxiosGet, useAxiosPost } from 'hook/useAxios';
+import { useEffect, useState } from 'react';
+import { AiOutlineVideoCameraAdd } from 'react-icons/ai';
+import { FaRegHeart } from 'react-icons/fa';
+import {
+  addToWatchlist,
+  getItem,
+  removeItem,
+  setWatchlist, // Import the setWatchlist action
+} from 'redux-toolkit/slices/watchlistSlice';
+import MovieModal from 'components/layouts/components/Modal';
+import { useDispatch, useSelector } from 'react-redux';
+import { getCurrentUser } from 'redux-toolkit/slices/authSlice';
+import { 
+  addToLike, 
+  getLikeItem, 
+  removeLike, 
+  setLikes // Import the setLikes action
+} from 'redux-toolkit/slices/likeSlice';
+
+export type MovieType = {
+  id: number;
+  title?: string;
+  release_year?: number;
+  plot?: string;
+  rating?: number;
+  duration: number;
+  slug?: string;
+  images: {
+    id: number;
+    image_url: string;
+    imageableType: string;
+    imageable_id: number;
+  }[];
+  movieActor: {
+    id: number;
+    bio: string;
+    name: string;
+    nationality: string;
+    birth_date: string;
+  }[];
+  movieDirector: {
+    id: number;
+    bio: string;
+    name: string;
+    nationality: string;
+    birth_date: string;
+  }[];
+  movieGenre: {
+    id: number;
+    name: string;
+  }[];
+  onClick?: () => void;
+};
+
+interface CartType {
+  id: number;
+  title?: string;
+  release_year?: number;
+  plot?: string;
+  rating?: number;
+  slug?: string;
+  images: {
+    id: number;
+    image_url: string;
+    imageableType: string;
+    imageable_id: number;
+  }[];
+}
+
+const Card = ({ id, title, release_year, plot, rating, slug, images }: CartType) => {
+  const dispatch = useDispatch();
+  const [getDetailsApi] = useAxiosGet();
+  const { likes } = useSelector(getLikeItem);
+  const { watchlist } = useSelector(getItem);
+  const [showModal, setShowModal] = useState(false);
+  const [oneMovie, setOneMovie] = useState<MovieType>();
+  const user = useSelector(getCurrentUser);
+  const [addToWatchlistApi] = useAxiosPost();
+  const [removeWatchlistApi] = useAxiosPost();
+  const [addToLikeApi] = useAxiosPost();
+  const [removeLikeApi] = useAxiosPost();
+  const [isWatchlisted, setIsWatchlisted] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
+  const handleOpen = () => setShowModal(!showModal);
+
+  const genre = oneMovie?.movieGenre.map((item) => item.name).join(', ');
+  const director = oneMovie?.movieDirector.map((item) => item.name).join(', ');
+  const actor = oneMovie?.movieActor.map((item) => item.name).join(', ');
+
+  const getDetails = async (slug: string | undefined) => {
+    if (slug) {
+      const response = await getDetailsApi(`/movie/${slug}`);
+      const data = response?.data;
+      setOneMovie(data);
+      handleOpen();
+    }
+  };
+
+  const onAddToLike = async () => {
+    dispatch(addToLike({ id, title, release_year, plot, rating, images }));
+    if (user?.id) {
+      setIsLiked(true);
+      await addToLikeApi('/likes', {
+        user_id: user.id,
+        movie_id: id,
+        status: true,
+      });
+    }
+  };
+
+  const onRemoveFromLike = async () => {
+    dispatch(removeLike({ id }));
+    if (user?.id) {
+      setIsLiked(false);
+      await removeLikeApi('/likes', {
+        user_id: user.id,
+        movie_id: id,
+        status: false,
+      });
+    }
+  };
+
+  const onAddToWatchlist = async () => {
+    dispatch(
+      addToWatchlist({
+        id,
+        title,
+        release_year,
+        plot,
+        rating,
+        images,
+      })
+    );
+    if (user?.id) {
+      setIsWatchlisted(true);
+      await addToWatchlistApi(`/watchlist`, {
+        movie_id: id,
+        user_id: user.id,
+        status: true,
+      });
+    }
+  };
+
+  const onRemoveFromWatchlist = async () => {
+    dispatch(removeItem({ id }));
+    if (user?.id) {
+      setIsWatchlisted(false);
+      await removeWatchlistApi(`/watchlist`, {
+        movie_id: id,
+        user_id: user.id,
+        status: false,
+      });
+    }
+  };
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (user?.id) {
+        // Fetch the user's watchlist
+        const watchlistResponse = await getDetailsApi(`/watchlist/${user.id}`);
+        const watchlistData = watchlistResponse?.data;
+        dispatch(setWatchlist(watchlistData));
+
+        // Fetch the user's liked movies
+        const likesResponse = await getDetailsApi(`/likes/${user.id}`);
+        const likesData = likesResponse?.data;
+        dispatch(setLikes(likesData));
+      }
+    };
+
+    fetchUserData();
+
+    const watchlistItem = watchlist.find((item) => item.id === id);
+    if (watchlistItem) {
+      setIsWatchlisted(true);
+    } else {
+      setIsWatchlisted(false);
+    }
+    const likeItem = likes.find((item) => item.id === id);
+    if (likeItem) {
+      setIsLiked(true);
+    } else {
+      setIsLiked(false);
+    }
+  }, [watchlist, likes, id, dispatch, user, getDetailsApi]);
+
+  return (
+    <div className="flex items-center justify-center mt-10 w-80 ml-16">
+      <div className="mx-auto bg-white rounded-3xl shadow-xl transition-transform transform hover:scale-105 hover:shadow-2xl">
+        <div className="rounded-3xl shadow-sm w-96 relative overflow-hidden">
+          <img
+            src={images[0]?.image_url}
+            width="400"
+            height="600"
+            className="rounded-t-3xl h-80 object-cover transition-opacity duration-300 hover:opacity-80"
+            alt={title}
+          />
+          <div
+            className="absolute inset-0 bg-black bg-opacity-50 opacity-0 transition-opacity duration-300 hover:opacity-100 flex items-center justify-center cursor-pointer"
+            onClick={() => getDetails(slug)}
+          >
+            <div className="text-white text-center
