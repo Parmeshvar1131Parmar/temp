@@ -1,0 +1,102 @@
+import React from 'react';
+
+export default function Modal({
+  handleOpen,
+  title,
+  release_year,
+  plot,
+  rating,
+  image,
+  duration,
+  actor,
+  genre,
+  director,
+}: {
+  id?: number;
+  title?: string;
+  release_year?: number;
+  plot?: string;
+  rating?: number;
+  slug?: string;
+  image?: string;
+  duration: number;
+  actor?: string;
+  genre?: string;
+  director?: string;
+  handleOpen?: () => void;
+}) {
+  const time = duration;
+  const hours = Math.floor(time / 60);
+  const minutes = time % 60;
+  return (
+    <div
+      className="justify-center items-center flex overflow-x-hidden overflow-y-auto fixed inset-0 z-50 outline-none focus:outline-none bg-black bg-opacity-75"
+      tabIndex={-1}
+      aria-hidden={true}
+    >
+      <div className="relative w-auto my-6 mx-auto max-w-3xl">
+        <div className="border-0 rounded-lg shadow-lg relative flex flex-col w-full bg-white outline-none focus:outline-none">
+          <div className="flex items-start justify-between p-5 border-b border-gray-200 rounded-t">
+            <h3 className="text-3xl font-semibold text-gray-800">{title}</h3>
+            <button
+              className="p-1 ml-auto bg-transparent border-0 text-gray-800 opacity-75 float-right text-3xl leading-none font-semibold outline-none focus:outline-none"
+              onClick={handleOpen}
+            >
+              <span className="bg-transparent text-gray-800 opacity-75 h-6 w-6 text-2xl block outline-none focus:outline-none">
+                ×
+              </span>
+            </button>
+          </div>
+
+          {image && (
+            <img
+              src={image}
+              className="w-full rounded-t-lg object-cover h-96"
+              alt={title}
+            />
+          )}
+
+          <div className="relative p-6 flex-auto">
+            <p className="my-4 text-gray-700 text-lg leading-relaxed">{plot}</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 px-6">
+            <div className="flex flex-col">
+              <span className="text-yellow-500 text-lg">IMDB Rating</span>
+              <span className="text-3xl font-bold text-gray-800">{rating}</span>
+            </div>
+            <div className="flex flex-col items-end">
+              <span className="text-lg font-bold text-yellow-500">
+                {hours} Hour {minutes} Minutes
+              </span>
+              <span className="text-3xl font-bold text-gray-800">{release_year}</span>
+            </div>
+            <div className="flex flex-col">
+              {actor && (
+                <span className="text-lg font-bold text-gray-800">Actor: {actor}</span>
+              )}
+              {director && (
+                <span className="text-lg font-bold text-gray-800">Director: {director}</span>
+              )}
+            </div>
+            <div className="flex flex-col items-end">
+              {genre && (
+                <span className="text-lg font-bold text-gray-800">Genre: {genre}</span>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end p-6 border-t border-solid border-gray-200 rounded-b">
+            <button
+              className="text-red-500 font-bold uppercase px-6 py-2 text-sm outline-none focus:outline-none mr-1 mb-1 ease-linear transition-all duration-150"
+              type="button"
+              onClick={handleOpen}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
