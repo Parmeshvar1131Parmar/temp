@@ -1,0 +1,124 @@
+import React from 'react';
+import ApexCharts from 'react-apexcharts';
+import { useSelector } from 'react-redux';
+import { getLikeItem } from 'redux-toolkit/slices/likeSlice';
+import { getItem } from 'redux-toolkit/slices/watchlistSlice';
+import { getMoviesByGenre, getMoviesByActor } from 'services/api'; // Assume these functions are defined
+
+const MovieChart = () => {
+  const { likes } = useSelector(getLikeItem);
+  const { watchlist } = useSelector(getItem);
+
+  const [genreData, setGenreData] = React.useState([]);
+  const [actorData, setActorData] = React.useState([]);
+  const [likesData, setLikesData] = React.useState([]);
+  const [watchlistData, setWatchlistData] = React.useState([]);
+
+  React.useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const genres = await getMoviesByGenre();
+        const actors = await getMoviesByActor();
+        setGenreData(genres.data);
+        setActorData(actors.data);
+
+        setLikesData(likes.map(item => ({ title: item.title, value: item.rating })));
+        setWatchlistData(watchlist.map(item => ({ title: item.title, value: item.rating })));
+      } catch (error) {
+        console.error('Failed to fetch chart data:', error);
+      }
+    };
+    fetchData();
+  }, [likes, watchlist]);
+
+  const createChartOptions = (labels, colors) => ({
+    chart: {
+      type: 'donut',
+      toolbar: {
+        show: false,
+      },
+    },
+    labels,
+    colors,
+    legend: {
+      position: 'bottom',
+      labels: {
+        colors: '#333',
+        useSeriesColors: false,
+      },
+    },
+    plotOptions: {
+      pie: {
+        donut: {
+          size: '70%',
+        },
+      },
+    },
+    dataLabels: {
+      enabled: true,
+      style: {
+        colors: ['#fff'],
+      },
+    },
+    responsive: [
+      {
+        breakpoint: 1000,
+        options: {
+          chart: {
+            width: '100%',
+          },
+        },
+      },
+    ],
+  });
+
+  return (
+    <div className="p-6 bg-gray-100 min-h-screen">
+      <h2 className="text-3xl font-semibold text-center mb-8">Movie Data Visualization</h2>
+
+      <div className="flex flex-col gap-8 max-w-6xl mx-auto">
+        <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
+          <h3 className="text-2xl font-semibold mb-4">Movies by Genre</h3>
+          <ApexCharts
+            options={createChartOptions(genreData.map(item => item.name), ['#FF4560', '#00E396', '#008FFB'])}
+            series={genreData.map(item => item.count)}
+            type="donut"
+            height={350}
+          />
+        </div>
+
+        <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
+          <h3 className="text-2xl font-semibold mb-4">Movies by Actor</h3>
+          <ApexCharts
+            options={createChartOptions(actorData.map(item => item.name), ['#FF4560', '#00E396', '#008FFB'])}
+            series={actorData.map(item => item.count)}
+            type="donut"
+            height={350}
+          />
+        </div>
+
+        <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
+          <h3 className="text-2xl font-semibold mb-4">Liked Movies</h3>
+          <ApexCharts
+            options={createChartOptions(likesData.map(item => item.title), ['#FF4560', '#00E396', '#008FFB'])}
+            series={likesData.map(item => item.value)}
+            type="donut"
+            height={350}
+          />
+        </div>
+
+        <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
+          <h3 className="text-2xl font-semibold mb-4">Watchlisted Movies</h3>
+          <ApexCharts
+            options={createChartOptions(watchlistData.map(item => item.title), ['#FF4560', '#00E396', '#008FFB'])}
+            series={watchlistData.map(item => item.value)}
+            type="donut"
+            height={350}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default MovieChart;
