@@ -1,0 +1,90 @@
+import React from 'react';
+import ApexCharts from 'react-apexcharts';
+import { useSelector } from 'react-redux';
+import { getLikeItem } from 'redux-toolkit/slices/likeSlice';
+import { getItem } from 'redux-toolkit/slices/watchlistSlice';
+import { getMoviesByGenre, getMoviesByActor } from 'services/api'; // Assume these functions are defined in services/api.js
+
+const MovieChart = () => {
+  const { likes } = useSelector(getLikeItem);
+  const { watchlist } = useSelector(getItem);
+
+  const [genreData, setGenreData] = React.useState([]);
+  const [actorData, setActorData] = React.useState([]);
+  const [likesData, setLikesData] = React.useState([]);
+  const [watchlistData, setWatchlistData] = React.useState([]);
+
+  React.useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const genres = await getMoviesByGenre();
+        const actors = await getMoviesByActor();
+        setGenreData(genres.data);
+        setActorData(actors.data);
+
+        // Assuming likes and watchlist are arrays of movie objects
+        setLikesData(likes.map(item => ({ title: item.title, value: item.rating })));
+        setWatchlistData(watchlist.map(item => ({ title: item.title, value: item.rating })));
+      } catch (error) {
+        console.error('Failed to fetch chart data:', error);
+      }
+    };
+    fetchData();
+  }, [likes, watchlist]);
+
+  const options = {
+    chart: {
+      type: 'bar',
+    },
+    xaxis: {
+      categories: genreData.map(item => item.name),
+    },
+    plotOptions: {
+      bar: {
+        horizontal: true,
+      },
+    },
+  };
+
+  const series = [
+    {
+      name: 'Movies by Genre',
+      data: genreData.map(item => item.count),
+    },
+    {
+      name: 'Movies by Actor',
+      data: actorData.map(item => item.count),
+    },
+  ];
+
+  return (
+    <div className="p-6 bg-white rounded-lg shadow-lg">
+      <h2 className="text-2xl font-semibold mb-4">Movie Data Visualization</h2>
+      <ApexCharts
+        options={options}
+        series={series}
+        type="bar"
+        height={350}
+      />
+      <div className="mt-6">
+        <h3 className="text-xl font-semibold">Likes and Watchlist</h3>
+        <ApexCharts
+          options={{
+            chart: {
+              type: 'pie',
+            },
+            labels: [...likesData.map(item => item.title), ...watchlistData.map(item => item.title)],
+            legend: {
+              position: 'bottom',
+            },
+          }}
+          series={[...likesData.map(item => item.value), ...watchlistData.map(item => item.value)]}
+          type="pie"
+          height={350}
+        />
+      </div>
+    </div>
+  );
+};
+
+export default MovieChart;
