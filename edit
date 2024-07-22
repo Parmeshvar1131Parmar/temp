@@ -1,0 +1,261 @@
+import React, { useState, useEffect } from 'react';
+import { Form, Formik, FormikValues } from 'formik';
+import { useAxiosPost, useAxiosGet } from 'hook/useAxios';
+import { MovieDataSchema } from 'components/validationSchema';
+import Basic from './Step.tsx/Basic';
+import Actor from './Step.tsx/Actor';
+import Director from './Step.tsx/Director';
+import Genre from './Step.tsx/Genre';
+import Sidebar from '../Dashboard/Sidebar';
+
+export type MovieValues = {
+  title: string;
+  release_year: number;
+  rating: number;
+  plot: string;
+  duration: number;
+  genres: { value: string; label: string }[];
+  actorName: string;
+  actorNationality: string;
+  actorBirthDate: number | string;
+  actorBio: string;
+  directorName: string;
+  directorNationality: string;
+  directorBirthDate: number | string;
+  directorBio: string;
+  images: File[];
+};
+
+const MovieForm = ({ movieId }: { movieId?: string }) => {
+  const [step, setStep] = useState(1);
+  const [MoviePostApi] = useAxiosPost();
+  const [getMovieApi] = useAxiosGet();
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [initialValues, setInitialValues] = useState<MovieValues>({
+    title: '',
+    release_year: new Date().getFullYear(),
+    rating: 0,
+    plot: '',
+    duration: 0,
+    genres: [],
+    actorName: '',
+    actorNationality: '',
+    actorBirthDate: '',
+    actorBio: '',
+    directorName: '',
+    directorNationality: '',
+    directorBirthDate: '',
+    directorBio: '',
+    images: [],
+  });
+
+  useEffect(() => {
+    if (movieId) {
+      const fetchMovie = async () => {
+        try {
+          const { data } = await getMovieApi(`/movie/${movieId}`);
+          const movieData = {
+            title: data.movie.title,
+            release_year: data.movie.release_year,
+            rating: data.movie.rating,
+            plot: data.movie.plot,
+            duration: data.movie.duration,
+            genres: data.genre.map((genre: string) => ({ value: genre, label: genre })),
+            actorName: data.actor.name,
+            actorNationality: data.actor.nationality,
+            actorBirthDate: data.actor.birth_date,
+            actorBio: data.actor.bio,
+            directorName: data.director.name,
+            directorNationality: data.director.nationality,
+            directorBirthDate: data.director.birth_date,
+            directorBio: data.director.bio,
+            images: [], // Assuming images are handled separately
+          };
+          setInitialValues(movieData);
+        } catch (error) {
+          console.error('Error fetching movie data:', error);
+        }
+      };
+      fetchMovie();
+    }
+  }, [movieId, getMovieApi]);
+
+  const onSubmit = async (values: FormikValues) => {
+    if (step !== 5) {
+      setStep(step + 1);
+    } else {
+      const formData = new FormData();
+      values.images.forEach((file: File) => formData.append('images', file));
+
+      const movieData = {
+        movie: {
+          title: values.title,
+          release_year: values.release_year,
+          rating: values.rating,
+          duration: values.duration,
+          plot: values.plot,
+        },
+        genre: values.genres.map((t: { value: string; label: string }) => t.value),
+        actor: {
+          name: values.actorName,
+          nationality: values.actorNationality,
+          birth_date: values.actorBirthDate,
+          bio: values.actorBio,
+        },
+        director: {
+          name: values.directorName,
+          nationality: values.directorNationality,
+          birth_date: values.directorBirthDate,
+          bio: values.directorBio,
+        },
+      };
+
+      formData.append('movieData', JSON.stringify(movieData));
+
+      const config = { headers: { 'Content-Type': 'multipart/form-data' } };
+      try {
+        const { data, error } = await MoviePostApi('/movie', formData, config);
+        console.log(data);
+
+        if (error) {
+          console.error('Error creating movie:', error);
+        } else {
+          alert('Movie created successfully');
+        }
+      } catch (error) {
+        console.error('Error creating movie:', error);
+      }
+    }
+  };
+
+  const handleFileChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+    setFieldValue: any
+  ) => {
+    const files = Array.from(event.target.files || []);
+    setFieldValue('images', files);
+
+    const filePreviews = files.map((file) => URL.createObjectURL(file));
+    setImagePreviews(filePreviews);
+  };
+
+  return (
+    <div className="flex bg-black min-h-[calc(100dvh_-_0px)]">
+      <Sidebar />
+      <div className="container mx-auto w-4/5 flex justify-center h-[800px] mt-10 bg-black min-h-[calc(100dvh_-_0px)]">
+        <Formik
+          enableReinitialize
+          initialValues={initialValues}
+          validationSchema={MovieDataSchema()[step - 1]}
+          onSubmit={(values) => onSubmit(values)}
+        >
+          {({ values, setFieldValue }) => (
+            <Form>
+              {step === 1 && (
+                <Basic
+                  title={values.title}
+                  release_year={values.release_year}
+                  rating={values.rating}
+                  duration={values.duration}
+                  plot={values.plot}
+                />
+              )}
+              {step === 2 && <Genre />}
+              {step === 3 && (
+                <Actor
+                  actorName={values.actorName}
+                  actorNationality={values.actorNationality}
+                  actorBirthDate={values.actorBirthDate}
+                  actorBio={values.actorBio}
+                />
+              )}
+              {step === 4 && (
+                <Director
+                  name={values.directorName}
+                  nationality={values.directorNationality}
+                  birth_date={values.directorBirthDate}
+                  bio={values.directorBio}
+                />
+              )}
+              {step === 5 && (
+                <>
+                  <h2 className="text-white text-xl m-2 text-center">
+                    Step 5: Upload Images
+                  </h2>
+                  <div className="flex items-center ml-36 justify-center w-[400px]">
+                    <label
+                      htmlFor="dropzone-file"
+                      className="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500"
+                    >
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <svg
+                          className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400"
+                          aria-hidden="true"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 20 16"
+                        >
+                          <path
+                            stroke="currentColor"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"
+                          />
+                        </svg>
+                        <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
+                          <span className="font-semibold">Click to upload</span>
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          PNG, JPG (MAX. 800x400px)
+                        </p>
+                      </div>
+                      <input
+                        id="dropzone-file"
+                        type="file"
+                        className="hidden"
+                        multiple
+                        accept="image/*"
+                        onChange={(event) => handleFileChange(event, setFieldValue)}
+                      />
+                    </label>
+                  </div>
+
+                  <div className="image-previews mt-4">
+                    {imagePreviews.map((preview, index) => (
+                      <img
+                        key={index}
+                        src={preview}
+                        alt={`Preview ${index}`}
+                        className="w-[650px] h-96 object-cover m-2 rounded-lg"
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+              <div className="flex justify-between mt-10">
+                {step !== 1 && (
+                  <button
+                    type="button"
+                    className="text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-gray-800 dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:border-gray-700"
+                    onClick={() => setStep(step - 1)}
+                  >
+                    Back
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  className="text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-gray-800 dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:border-gray-700"
+                >
+                  {step !== 5 ? 'Next' : 'Submit'}
+                </button>
+              </div>
+            </Form>
+          )}
+        </Formik>
+      </div>
+    </div>
+  );
+};
+
+export default MovieForm;
