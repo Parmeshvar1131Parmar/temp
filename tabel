@@ -1,0 +1,149 @@
+// MovieTable.tsx
+import React, { useState, useEffect } from 'react';
+import { useFormik } from 'formik';
+import * as Yup from 'yup';
+
+interface Movie {
+  id: number;
+  title: string;
+  release_year: number;
+  rating: number;
+  duration: number;
+}
+
+interface MovieTableProps {
+  movies: Movie[];
+}
+
+const MovieTable: React.FC<MovieTableProps> = ({ movies }) => {
+  const [sortedMovies, setSortedMovies] = useState<Movie[]>([]);
+  const [sortConfig, setSortConfig] = useState<{ key: keyof Movie; direction: 'ascending' | 'descending' }>({ key: 'title', direction: 'ascending' });
+  const [currentPage, setCurrentPage] = useState(1);
+  const moviesPerPage = 10;
+
+  const formik = useFormik({
+    initialValues: {
+      searchTerm: ''
+    },
+    validationSchema: Yup.object({
+      searchTerm: Yup.string().max(50, 'Must be 50 characters or less')
+    }),
+    onSubmit: (values) => {
+      const filteredMovies = movies.filter((movie) =>
+        movie.title.toLowerCase().includes(values.searchTerm.toLowerCase())
+      );
+      setSortedMovies(filteredMovies);
+    }
+  });
+
+  useEffect(() => {
+    setSortedMovies(movies);
+  }, [movies]);
+
+  const requestSort = (key: keyof Movie) => {
+    let direction: 'ascending' | 'descending' = 'ascending';
+    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+
+    const sortedData = [...sortedMovies].sort((a, b) => {
+      if (a[key] < b[key]) {
+        return direction === 'ascending' ? -1 : 1;
+      }
+      if (a[key] > b[key]) {
+        return direction === 'ascending' ? 1 : -1;
+      }
+      return 0;
+    });
+
+    setSortedMovies(sortedData);
+  };
+
+  // Pagination logic
+  const indexOfLastMovie = currentPage * moviesPerPage;
+  const indexOfFirstMovie = indexOfLastMovie - moviesPerPage;
+  const currentMovies = sortedMovies.slice(indexOfFirstMovie, indexOfLastMovie);
+
+  const totalPages = Math.ceil(sortedMovies.length / moviesPerPage);
+
+  return (
+    <div>
+      <h1 className="text-2xl mb-4 font-bold">Movies</h1>
+      <form onSubmit={formik.handleSubmit} className="mb-4 flex items-center">
+        <input
+          id="searchTerm"
+          name="searchTerm"
+          type="text"
+          onChange={formik.handleChange}
+          onBlur={formik.handleBlur}
+          value={formik.values.searchTerm}
+          placeholder="Search movies..."
+          className="p-2 border border-gray-300 rounded w-full max-w-md"
+        />
+        <button type="submit" className="ml-2 p-2 bg-blue-500 text-white rounded">Search</button>
+      </form>
+      <div className="overflow-x-auto">
+        <table className="min-w-full bg-white shadow-md rounded-lg">
+          <thead>
+            <tr>
+              <th
+                onClick={() => requestSort('title')}
+                className="p-4 border-b-2 border-gray-300 cursor-pointer text-left"
+              >
+                Title
+              </th>
+              <th
+                onClick={() => requestSort('release_year')}
+                className="p-4 border-b-2 border-gray-300 cursor-pointer text-left"
+              >
+                Release Year
+              </th>
+              <th
+                onClick={() => requestSort('rating')}
+                className="p-4 border-b-2 border-gray-300 cursor-pointer text-left"
+              >
+                Rating
+              </th>
+              <th
+                onClick={() => requestSort('duration')}
+                className="p-4 border-b-2 border-gray-300 cursor-pointer text-left"
+              >
+                Duration
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {currentMovies.map((movie) => (
+              <tr key={movie.id} className="hover:bg-gray-100">
+                <td className="p-4 border-b border-gray-200">{movie.title}</td>
+                <td className="p-4 border-b border-gray-200">{movie.release_year}</td>
+                <td className="p-4 border-b border-gray-200">{movie.rating}</td>
+                <td className="p-4 border-b border-gray-200">{movie.duration}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex justify-between mt-4">
+        <button
+          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+          disabled={currentPage === 1}
+          className={`p-2 rounded ${currentPage === 1 ? 'bg-gray-300' : 'bg-blue-500 text-white'} `}
+        >
+          Previous
+        </button>
+        <span className="text-lg">Page {currentPage} of {totalPages}</span>
+        <button
+          onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+          disabled={currentPage === totalPages}
+          className={`p-2 rounded ${currentPage === totalPages ? 'bg-gray-300' : 'bg-blue-500 text-white'} `}
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default MovieTable;
