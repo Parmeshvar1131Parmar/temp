@@ -1,0 +1,91 @@
+import CommonHeader from 'components/layouts/components/Header';
+import Card from 'components/layouts/components/MovieCard/Card';
+import { useAxiosGet } from 'hook/useAxios';
+import { Fragment, useEffect, useState, useCallback } from 'react';
+import { WatchlisType } from 'redux-toolkit/slices/watchlistSlice';
+import { ToastContainer } from 'react-toastify';
+import HeaderCarousel from 'components/layouts/components/Header/HeaderCarousel';
+import Gerne from 'components/layouts/components/Genre';
+import Search from 'components/layouts/components/Search';
+
+const Home = () => {
+  const [movieData, setMovieData] = useState<WatchlisType[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [hasMore, setHasMore] = useState<boolean>(true);
+  const [offset, setOffset] = useState<number>(0);
+  const [MovieApi] = useAxiosGet();
+
+  const getData = useCallback(async () => {
+    if (loading || !hasMore) return;
+    setLoading(true);
+    try {
+      const response = await MovieApi(`/movie/?limit=8&offset=${offset}`);
+      const movies: WatchlisType[] = response?.data?.movie;
+
+      setMovieData((prevMovies) => [...prevMovies, ...movies]);
+      setOffset((prevOffset) => prevOffset + 8);
+
+      if (movies.length < 8) {
+        setHasMore(false);
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [loading, hasMore, offset, MovieApi]);
+
+  const handleScroll = useCallback(() => {
+    if (window.innerHeight + document.documentElement.scrollTop + 1 >= document.documentElement.scrollHeight && !loading) {
+      getData();
+    }
+  }, [getData, loading]);
+
+  useEffect(() => {
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [handleScroll]);
+
+  useEffect(() => {
+    getData();
+  }, []); // Only run on mount
+
+  return (
+    <div className="bg-black min-h-[calc(100dvh_-_0px)] ">
+      <div className="rounded-lg fixed bg-black z-50 flex justify-center items-center  w-full">
+        <CommonHeader />
+      </div>
+      <ToastContainer />
+      <HeaderCarousel />
+      <div className="m-6">
+        <Search />
+      </div>
+      <Gerne />
+      <h2 className="text-3xl text-center font-bold mt-4 text-white bg-black">
+        Recommended for You
+      </h2>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 xl:gap-x-8 bg-black">
+        {movieData.length > 0 ? (
+          movieData.map((movie) => (
+            <Fragment key={movie.id}>
+              <Card
+                id={movie.id}
+                title={movie.title}
+                release_year={movie.release_year}
+                slug={movie.slug}
+                rating={movie.rating}
+                plot={`${movie.plot?.substring(0, 190)}....`}
+                images={movie.images}
+              />
+            </Fragment>
+          ))
+        ) : (
+          <h1>Movie not available</h1>
+        )}
+      </div>
+      {loading && <div className="text-white text-center">Loading...</div>}
+    </div>
+  );
+};
+
+export default Home;
