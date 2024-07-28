@@ -1,0 +1,95 @@
+readonly updateMovie = async (
+  slug: string,
+  movie: Movie,
+  genre: string[],
+  actor: string[],
+  director: string[],
+  image: string
+) => {
+  console.log("update movie");
+
+  try {
+    if (slug) {
+      const isMovie = await Movie.findOne({
+        where: {
+          slug: slug,
+        },
+      });
+
+      if (isMovie) {
+        // Update movie details
+        await Movie.update(
+          {
+            ...movie,
+            id: isMovie.dataValues.id,
+            slug: isMovie.dataValues.slug,
+          },
+          {
+            where: {
+              id: isMovie.dataValues.id,
+            },
+          }
+        );
+
+        // Update genres
+        for (const item of genre) {
+          const genreRecord = await Genre.findOne({
+            where: {
+              name: item,
+            },
+          });
+
+          if (genreRecord) {
+            await MovieGenre.upsert({
+              movie_id: isMovie.dataValues.id,
+              genre_id: genreRecord.dataValues.id,
+            });
+          }
+        }
+
+        // Update actors
+        for (const item of actor) {
+          const actorRecord = await Actors.findOne({
+            where: {
+              name: item,
+            },
+          });
+
+          if (actorRecord) {
+            await MovieActors.upsert({
+              movie_id: isMovie.dataValues.id,
+              actor_id: actorRecord.dataValues.id,
+            });
+          }
+        }
+
+        // Update directors
+        for (const item of director) {
+          const directorRecord = await Directors.findOne({
+            where: {
+              name: item,
+            },
+          });
+
+          if (directorRecord) {
+            await MovieDirector.upsert({
+              movie_id: isMovie.dataValues.id,
+              director_id: directorRecord.dataValues.id,
+            });
+          }
+        }
+
+        // Update image
+        await Images.upsert({
+          image_url: image,
+          imageableType: IMAGEABLE_TYPE_MOVIE,
+          imageable_id: isMovie.dataValues.id,
+        });
+
+        console.log("movie updated");
+      }
+    }
+  } catch (error) {
+    console.log(error);
+  }
+};
