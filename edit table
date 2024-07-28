@@ -1,0 +1,159 @@
+import { useFormik } from 'formik';
+import * as Yup from 'yup';
+import { FaEdit, FaEye, FaTrash } from 'react-icons/fa';
+import { useHistory } from 'react-router-dom';
+
+interface IDynamicTableProps {
+  tableData: object[];
+  excludeKeys?: string[];
+  onEdit: (id: number) => void;
+  onView: (id: number) => void;
+  onDelete: (id: number) => void;
+}
+
+const DynamicTable = ({
+  tableData,
+  excludeKeys = [],
+  onDelete,
+  onView,
+  onEdit,
+}: IDynamicTableProps) => {
+  const history = useHistory();
+
+  const formik = useFormik({
+    initialValues: {
+      searchTerm: '',
+    },
+    validationSchema: Yup.object({
+      searchTerm: Yup.string().max(50, 'Must be 50 characters or less'),
+    }),
+    onSubmit: (values) => {
+      console.log(values);
+    },
+  });
+
+  const columnKeys =
+    tableData[0] &&
+    Object.keys(tableData[0]).filter((key) => !excludeKeys.includes(key) && key);
+
+  const renderTableHead = () => {
+    return (
+      <tr>
+        {columnKeys &&
+          columnKeys.map((key, i) => {
+            return (
+              <th
+                className="p-4 border-b-2 border-gray-300 dark:text-white cursor-pointer text-center"
+                key={i}
+              >
+                {key}
+              </th>
+            );
+          })}
+        <th className="p-4 border-b-2 border-gray-300 dark:text-white cursor-pointer text-center">
+          Action
+        </th>
+      </tr>
+    );
+  };
+
+  const renderTableRows = () => {
+    return (
+      tableData &&
+      tableData.map((data: any, index) => (
+        <tr key={index} className="hover:bg-slate-500 rounded-lg">
+          {columnKeys &&
+            columnKeys.map((key) => renderDataCell(data[key], key))}
+          <td className="p-2 flex space-x-3 mt-8">
+            <button
+              onClick={() => onView(data[columnKeys[0]])}
+              className="text-green-500 hover:text-green-700"
+            >
+              <FaEye />
+            </button>
+            <button
+              onClick={() => handleEditClick(data)}
+              className="font-medium text-blue-600 dark:text-blue-500 hover:underline"
+            >
+              <FaEdit />
+            </button>
+            <button
+              onClick={() => onDelete(data[columnKeys[0]])}
+              className="text-red-500 hover:text-red-700"
+            >
+              <FaTrash />
+            </button>
+          </td>
+        </tr>
+      ))
+    );
+  };
+
+  const renderDataCell = (value: string, key: string) => {
+    if (
+      key.includes('birth_date') ||
+      key.includes('createdAt') ||
+      key.includes('updatedAt')
+    ) {
+      return (
+        <td className="p-4 dark:text-white">{new Date(value).toUTCString()}</td>
+      );
+    }
+
+    return (
+      <td className="p-4 dark:text-white" key={key}>
+        {value}
+      </td>
+    );
+  };
+
+  const handleEditClick = (data: any) => {
+    const id = data[columnKeys[0]];
+
+    if (data.hasOwnProperty('actorId')) {
+      history.push(`/edit-actor/${id}`);
+    } else if (data.hasOwnProperty('directorId')) {
+      history.push(`/edit-director/${id}`);
+    } else if (data.hasOwnProperty('slug')) {
+      history.push(`/edit-movie/${data.slug}`);
+    } else {
+      console.warn('Unknown type for edit action.');
+    }
+
+    onEdit(id);
+  };
+
+  return tableData ? (
+    <div className="w-[1600px] ml-72">
+      <form
+        onSubmit={formik.handleSubmit}
+        className="mb-4 flex items-center justify-center"
+      >
+        <input
+          id="searchTerm"
+          name="searchTerm"
+          type="text"
+          onChange={formik.handleChange}
+          onBlur={formik.handleBlur}
+          value={formik.values.searchTerm}
+          placeholder="Search movies..."
+          className='p-2.5 mt-4 w-full max-w-md class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="name@flowbite.com" required outline-none'
+        />
+        <button
+          type="submit"
+          className="ml-2 mt-4 p-2 bg-blue-500 text-white rounded"
+        >
+          Search
+        </button>
+      </form>
+      <table className="bg-white dark:bg-gray-900 shadow-md rounded-lg m-6">
+        <thead>{renderTableHead()}</thead>
+        <tbody>{renderTableRows()}</tbody>
+      </table>
+    </div>
+  ) : (
+    <></>
+  );
+};
+
+export default DynamicTable;
