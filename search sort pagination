@@ -1,0 +1,125 @@
+import { useState } from 'react';
+import { useFormik } from 'formik';
+import * as Yup from 'yup';
+import { FaEdit, FaEye, FaTrash, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
+import { useHistory } from 'react-router-dom';
+
+interface IDynamicTableProps {
+  tableData: object[];
+  excludeKeys?: string[];
+  onEdit: (id: number) => void;
+  onView: (id: number) => void;
+  onDelete: (id: number) => void;
+}
+
+const DynamicTable = ({
+  tableData,
+  excludeKeys = [],
+  onDelete,
+  onView,
+  onEdit,
+}: IDynamicTableProps) => {
+  const history = useHistory();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: string } | null>(null);
+
+  const formik = useFormik({
+    initialValues: {
+      searchTerm: '',
+    },
+    validationSchema: Yup.object({
+      searchTerm: Yup.string().max(50, 'Must be 50 characters or less'),
+    }),
+    onSubmit: (values) => {
+      console.log(values);
+    },
+  });
+
+  const columnKeys =
+    tableData[0] &&
+    Object.keys(tableData[0]).filter((key) => !excludeKeys.includes(key) && key);
+
+  const filteredData = tableData.filter((item) =>
+    columnKeys.some((key) => item[key].toString().toLowerCase().includes(formik.values.searchTerm.toLowerCase()))
+  );
+
+  const sortedData = (() => {
+    if (sortConfig !== null) {
+      return filteredData.sort((a, b) => {
+        if (a[sortConfig.key] < b[sortConfig.key]) {
+          return sortConfig.direction === 'ascending' ? -1 : 1;
+        }
+        if (a[sortConfig.key] > b[sortConfig.key]) {
+          return sortConfig.direction === 'ascending' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return filteredData;
+  })();
+
+  const paginatedData = sortedData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+
+  const renderTableHead = () => {
+    return (
+      <tr>
+        {columnKeys &&
+          columnKeys.map((key, i) => {
+            return (
+              <th
+                className="p-4 border-b-2 border-gray-300 dark:text-white cursor-pointer text-center"
+                key={i}
+                onClick={() => requestSort(key)}
+              >
+                {key}
+                {renderSortIcon(key)}
+              </th>
+            );
+          })}
+        <th className="p-4 border-b-2 border-gray-300 dark:text-white cursor-pointer text-center">Action</th>
+      </tr>
+    );
+  };
+
+  const renderSortIcon = (key: string) => {
+    if (!sortConfig) return <FaSort className="inline-block ml-2" />;
+    if (sortConfig.key === key) {
+      if (sortConfig.direction === 'ascending') {
+        return <FaSortUp className="inline-block ml-2" />;
+      } else {
+        return <FaSortDown className="inline-block ml-2" />;
+      }
+    }
+    return <FaSort className="inline-block ml-2" />;
+  };
+
+  const requestSort = (key: string) => {
+    let direction = 'ascending';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const renderTableRows = () => {
+    return (
+      paginatedData &&
+      paginatedData.map((data: any, index) => (
+        <tr key={index} className="hover:bg-slate-500 rounded-lg">
+          {columnKeys &&
+            columnKeys.map((key) => renderDataCell(data[key], key))}
+          <td className="p-2 flex space-x-3 mt-8">
+            <button
+              onClick={() => onView(data[columnKeys[0]])}
+              className="text-green-500 hover:text-green-700"
+            >
+              <FaEye />
+            </button>
+            <button
+              onClick={() => handleEditClick(data)}
+              className="font-medium text-blue-600 dark:text-blue-500 hover:underline"
+            >
+              <FaEdit
