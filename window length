@@ -1,0 +1,105 @@
+import CommonHeader from 'components/layouts/components/Header';
+import Card from 'components/layouts/components/MovieCard/Card';
+import { useAxiosGet } from 'hook/useAxios';
+import { Fragment, useEffect, useState, useRef } from 'react';
+import { WatchlisType } from 'redux-toolkit/slices/watchlistSlice';
+import { ToastContainer } from 'react-toastify';
+import HeaderCarousel from 'components/layouts/components/Header/HeaderCarousel';
+import Gerne from 'components/layouts/components/Genre';
+import Search from 'components/layouts/components/Search';
+import { useSelector } from 'react-redux';
+import { getCurrentPage } from 'redux-toolkit/slices/paginationSlice';
+
+const Home = () => {
+  const [movieData, setMovieData] = useState<WatchlisType[]>([]);
+  const [MovieApi] = useAxiosGet();
+  const { currentPage } = useSelector(getCurrentPage);
+  const [hasMore, setHasMore] = useState(true);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+
+  const fetchData = async (offset: number) => {
+    const response = await MovieApi(`/movie/?limit=8&offset=${offset}`);
+    const movies: WatchlisType[] = response?.data?.movie;
+
+    if (movies.length === 0) {
+      setHasMore(false);
+    } else {
+      setMovieData((prevMovies) => [...prevMovies, ...movies]);
+    }
+  };
+
+  useEffect(() => {
+    fetchData(0);
+  }, []);
+
+  useEffect(() => {
+    const handleObserver = (entries: IntersectionObserverEntry[]) => {
+      const target = entries[0];
+      if (target.isIntersecting && hasMore) {
+        const newOffset = movieData.length;
+        fetchData(newOffset);
+      }
+    };
+
+    const options = {
+      root: null,
+      rootMargin: '20px',
+      threshold: 1.0,
+    };
+
+    if (observerRef.current) observerRef.current.disconnect();
+
+    observerRef.current = new IntersectionObserver(handleObserver, options);
+    const currentObserver = observerRef.current;
+
+    const target = document.querySelector('#load-more');
+    if (target) currentObserver.observe(target);
+
+    return () => {
+      if (currentObserver && target) currentObserver.unobserve(target);
+    };
+  }, [movieData, hasMore]);
+
+  return (
+    <div className="bg-black min-h-[calc(100dvh_-_0px)] ">
+      <div className="rounded-lg fixed bg-black z-50 flex justify-center items-center w-full">
+        <CommonHeader />
+      </div>
+      <ToastContainer />
+      <HeaderCarousel />
+      <div className="m-6">
+        <Search />
+      </div>
+      <Gerne />
+      <h2 className="text-3xl text-center font-bold mt-4 text-white bg-black">
+        Recommended for You
+      </h2>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 xl:gap-x-8 bg-black">
+        {movieData.length > 0 ? (
+          movieData.map((movie) => (
+            <Fragment key={movie.id}>
+              <Card
+                id={movie.id}
+                title={movie.title}
+                release_year={movie.release_year}
+                slug={movie.slug}
+                rating={movie.rating}
+                plot={`${movie.plot?.substring(0, 190)}....`}
+                images={movie.images}
+              />
+            </Fragment>
+          ))
+        ) : (
+          <h1 className="text-white">Movie not available</h1>
+        )}
+      </div>
+      {hasMore && (
+        <div id="load-more" className="bg-black mt-12 flex justify-center items-center">
+          <h2 className="text-white">Loading more movies...</h2>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Home;
