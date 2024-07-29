@@ -1,8 +1,8 @@
-import { useState } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { FaEdit, FaEye, FaTrash, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
 import { useHistory } from 'react-router-dom';
+import { useState } from 'react';
 
 interface IDynamicTableProps {
   tableData: object[];
@@ -10,6 +10,7 @@ interface IDynamicTableProps {
   onEdit: (id: number) => void;
   onView: (id: number) => void;
   onDelete: (id: number) => void;
+  itemsPerPage?: number;
 }
 
 const DynamicTable = ({
@@ -18,10 +19,10 @@ const DynamicTable = ({
   onDelete,
   onView,
   onEdit,
+  itemsPerPage = 10,
 }: IDynamicTableProps) => {
   const history = useHistory();
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: string } | null>(null);
 
   const formik = useFormik({
@@ -32,7 +33,7 @@ const DynamicTable = ({
       searchTerm: Yup.string().max(50, 'Must be 50 characters or less'),
     }),
     onSubmit: (values) => {
-      console.log(values);
+      setCurrentPage(1);
     },
   });
 
@@ -40,63 +41,7 @@ const DynamicTable = ({
     tableData[0] &&
     Object.keys(tableData[0]).filter((key) => !excludeKeys.includes(key) && key);
 
-  const filteredData = tableData.filter((item) =>
-    columnKeys.some((key) => item[key].toString().toLowerCase().includes(formik.values.searchTerm.toLowerCase()))
-  );
-
-  const sortedData = (() => {
-    if (sortConfig !== null) {
-      return filteredData.sort((a, b) => {
-        if (a[sortConfig.key] < b[sortConfig.key]) {
-          return sortConfig.direction === 'ascending' ? -1 : 1;
-        }
-        if (a[sortConfig.key] > b[sortConfig.key]) {
-          return sortConfig.direction === 'ascending' ? 1 : -1;
-        }
-        return 0;
-      });
-    }
-    return filteredData;
-  })();
-
-  const paginatedData = sortedData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-
-  const renderTableHead = () => {
-    return (
-      <tr>
-        {columnKeys &&
-          columnKeys.map((key, i) => {
-            return (
-              <th
-                className="p-4 border-b-2 border-gray-300 dark:text-white cursor-pointer text-center"
-                key={i}
-                onClick={() => requestSort(key)}
-              >
-                {key}
-                {renderSortIcon(key)}
-              </th>
-            );
-          })}
-        <th className="p-4 border-b-2 border-gray-300 dark:text-white cursor-pointer text-center">Action</th>
-      </tr>
-    );
-  };
-
-  const renderSortIcon = (key: string) => {
-    if (!sortConfig) return <FaSort className="inline-block ml-2" />;
-    if (sortConfig.key === key) {
-      if (sortConfig.direction === 'ascending') {
-        return <FaSortUp className="inline-block ml-2" />;
-      } else {
-        return <FaSortDown className="inline-block ml-2" />;
-      }
-    }
-    return <FaSort className="inline-block ml-2" />;
-  };
-
-  const requestSort = (key: string) => {
+  const handleSort = (key: string) => {
     let direction = 'ascending';
     if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
       direction = 'descending';
@@ -104,13 +49,67 @@ const DynamicTable = ({
     setSortConfig({ key, direction });
   };
 
+  const sortedData = [...tableData].sort((a, b) => {
+    if (sortConfig !== null) {
+      if (a[sortConfig.key] < b[sortConfig.key]) {
+        return sortConfig.direction === 'ascending' ? -1 : 1;
+      }
+      if (a[sortConfig.key] > b[sortConfig.key]) {
+        return sortConfig.direction === 'ascending' ? 1 : -1;
+      }
+      return 0;
+    }
+    return 0;
+  });
+
+  const filteredData = sortedData.filter((item) =>
+    columnKeys.some((key) =>
+      String(item[key]).toLowerCase().includes(formik.values.searchTerm.toLowerCase())
+    )
+  );
+
+  const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+
+  const renderTableHead = () => {
+    return (
+      <tr>
+        {columnKeys &&          columnKeys.map((key, i) => {
+            const isSorted = sortConfig?.key === key;
+            return (
+              <th
+                className="p-4 border-b-2 border-gray-300 dark:text-white cursor-pointer text-center"
+                key={i}
+                onClick={() => handleSort(key)}
+              >
+                {key}
+                {isSorted && (
+                  <span className="ml-2">
+                    {sortConfig.direction === 'ascending' ? <FaSortUp /> : <FaSortDown />}
+                  </span>
+                )}
+                {!isSorted && <FaSort className="ml-2" />}
+              </th>
+            );
+          })}
+        <th className="p-4 border-b-2 border-gray-300 dark:text-white cursor-pointer text-center">
+          Action
+        </th>
+      </tr>
+    );
+  };
+
   const renderTableRows = () => {
     return (
       paginatedData &&
-      paginatedData.map((data: any, index) => (
-        <tr key={index} className="hover:bg-slate-500 rounded-lg">
+      paginatedData.map((data: any, rowIndex) => (
+        <tr key={rowIndex} className="hover:bg-slate-500 rounded-lg">
           {columnKeys &&
-            columnKeys.map((key) => renderDataCell(data[key], key))}
+            columnKeys.map((key, colIndex) => (
+              <td className="p-4 dark:text-white" key={colIndex}>
+                {renderDataCell(data[key], key)}
+              </td>
+            ))}
           <td className="p-2 flex space-x-3 mt-8">
             <button
               onClick={() => onView(data[columnKeys[0]])}
@@ -122,4 +121,104 @@ const DynamicTable = ({
               onClick={() => handleEditClick(data)}
               className="font-medium text-blue-600 dark:text-blue-500 hover:underline"
             >
-              <FaEdit
+              <FaEdit />
+            </button>
+            <button
+              onClick={() => onDelete(data[columnKeys[0]])}
+              className="text-red-500 hover:text-red-700"
+            >
+              <FaTrash />
+            </button>
+          </td>
+        </tr>
+      ))
+    );
+  };
+
+  const renderDataCell = (value: string, key: string) => {
+    if (
+      key.includes('birth_date') ||
+      key.includes('createdAt') ||
+      key.includes('updatedAt')
+    ) {
+      return (
+        <td className="p-4 dark:text-white">{new Date(value).toUTCString()}</td>
+      );
+    }
+
+    return (
+      <td className="p-4 dark:text-white" key={key}>
+        {value}
+      </td>
+    );
+  };
+
+  const handleEditClick = (data: any) => {
+    const id = data[columnKeys[0]];
+
+    if (data.hasOwnProperty('actorId')) {
+      history.push(`/edit-actor/${id}`);
+    } else if (data.hasOwnProperty('directorId')) {
+      history.push(`/edit-director/${id}`);
+    } else if (data.hasOwnProperty('slug')) {
+      history.push(`/edit-movie/${data.slug}`);
+    } else {
+      console.warn('Unknown type for edit action.');
+    }
+
+    onEdit(id);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+  };
+
+  return tableData ? (
+    <div className="w-[1600px] ml-72">
+      <form
+        onSubmit={formik.handleSubmit}
+        className="mb-4 flex items-center justify-center"
+      >
+        <input
+          id="searchTerm"
+          name="searchTerm"
+          type="text"
+          onChange={formik.handleChange}
+          onBlur={formik.handleBlur}
+          value={formik.values.searchTerm}
+          placeholder="Search..."
+          className="p-2.5 mt-4 w-full max-w-md bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 outline-none"
+        />
+        <button
+          type="submit"
+          className="ml-2 mt-4 p-2 bg-blue-500 text-white rounded"
+        >
+          Search
+        </button>
+      </form>
+      <table className="bg-white dark:bg-gray-900 shadow-md rounded-lg m-6">
+        <thead>{renderTableHead()}</thead>
+        <tbody>{renderTableRows()}</tbody>
+      </table>
+      <div className="flex justify-center mt-4">
+        {Array.from({ length: totalPages }, (_, i) => (
+          <button
+            key={i + 1}
+            onClick={() => handlePageChange(i + 1)}
+            className={`px-4 py-2 mx-1 ${
+              currentPage === i + 1
+                ? 'bg-blue-500 text-white'
+                : 'bg-gray-300 text-gray-700'
+            } rounded`}
+          >
+            {i + 1}
+          </button>
+        ))}
+      </div>
+    </div>
+  ) : (
+    <></>
+  );
+};
+
+export default DynamicTable;
