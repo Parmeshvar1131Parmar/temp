@@ -1,0 +1,189 @@
+import { ErrorMessage, useField } from 'formik';
+import { IReactSelect, Option } from './types';
+import { useEffect, useState } from 'react';
+import Select from 'react-select';
+import Button from 'components/Button/Button';
+
+const ReactSelect = (props: IReactSelect) => {
+  const {
+    isSearchable = true,
+    onChange,
+    placeholder,
+    options,
+    objectOptions,
+    isCompulsory = false,
+    isMulti = false,
+    label,
+    className,
+    selectedValue,
+    isInput = false,
+    ...rest
+  } = props;
+
+  const [field, , helpers] = rest?.name ? useField(rest?.name) : [];
+  const [inputValue, setInputValue] = useState<string>('');
+  const [propOptions, setPropOptions] = useState<Option[]>([]);
+
+  useEffect(() => {
+    if (options && Array.isArray(options)) {
+      setPropOptions(objectOptions as Option[]);
+    }
+  }, [options, objectOptions]);
+
+  useEffect(() => {
+    if (objectOptions && Array.isArray(objectOptions)) {
+      setPropOptions(objectOptions as Option[]);
+    }
+  }, [objectOptions]);
+
+  const handleChange = (option: Option | Option[]) => {
+    if (isMulti) {
+      const newOptions = (option as Option[]).map((item: Option) => item.value);
+      helpers?.setValue(newOptions);
+    } else {
+      helpers?.setValue((option as Option)?.value);
+    }
+  };
+
+  const getValue = (): Option | Option[] | undefined => {
+    if (options) {
+      if (!options) {
+        return isMulti ? [] : undefined;
+      }
+      const checkInputValue = Array.isArray(options)
+        ? options?.filter((a) => a?.label?.includes(inputValue))
+        : [];
+
+      if (selectedValue) {
+        if (Array.isArray(selectedValue)) {
+          return options?.filter((option: Option) =>
+            selectedValue.includes(String(option?.value))
+          );
+        }
+        return options.find((option: Option) => option?.value === selectedValue);
+      }
+      if (
+        checkInputValue?.length === 0 &&
+        !propOptions?.find((a) => a.value === inputValue) &&
+        inputValue?.length > 0
+      ) {
+        setPropOptions([{ label: inputValue, value: inputValue }, ...options]);
+      }
+      if (isMulti) {
+        if (Array.isArray(field?.value) && Array.isArray(options)) {
+          return options?.filter(
+            (option: Option) => field?.value?.indexOf(option.value) >= 0
+          );
+        }
+      } else {
+        return propOptions?.find((option: Option) => option?.value === field?.value);
+      }
+    } else if (objectOptions) {
+      if (selectedValue) {
+        return (objectOptions as Option[])?.find((option) => {
+          if (option?.value) {
+            if (typeof option.value === 'object') {
+              return (
+                JSON.stringify(Object.values(option.value).sort()) ===
+                JSON.stringify(Object.values(selectedValue).sort())
+              );
+            }
+          }
+          return false;
+        });
+      }
+    }
+  };
+
+  const handleRemoveOption = (valueToRemove: string | number | boolean) => {
+    helpers?.setValue(
+      (field?.value || []).filter((data: string) => data !== valueToRemove)
+    );
+  };
+
+  return (
+    <>
+      {label && <label className="text-white">{label}</label>}
+      {isCompulsory && <span className=" text-red-700">*</span>}
+      <Select
+        isSearchable={isSearchable}
+        {...field}
+        onChange={(e) => {
+          return onChange
+            ? onChange(e as Option | Option[], 'Add')
+            : handleChange(e as Option | Option[]);
+        }}
+        name={rest.name}
+        value={getValue() ? getValue() : null}
+        placeholder={placeholder ?? ''}
+        options={propOptions ?? options}
+        isMulti={isMulti}
+        className={`${className}`}
+        classNamePrefix="my-react-select"
+        onInputChange={(element) => {
+          if (isInput) {
+            setInputValue(element);
+          }
+        }}
+      />
+      {isCompulsory && rest?.name ? (
+        <div className="text-red-600  text-xs font-semibold block mt-1">
+          <ErrorMessage name={rest?.name} />
+        </div>
+      ) : (
+        ''
+      )}
+      {isMulti && (
+        <div
+          className={`flex flex-wrap gap-4 ${
+            getValue() &&
+            Array.isArray(getValue()) &&
+            (getValue() as Option[]).length > 0
+              ? 'pt-5'
+              : ''
+          }`}
+        >
+          {propOptions &&
+            propOptions.length > 0 &&
+            propOptions.map((data: Option, index: number) => {
+              if (
+                getValue() &&
+                Array.isArray(getValue()) &&
+                (getValue() as Option[])?.find((findData) => {
+                  return findData.value === data.value;
+                })
+              ) {
+                return (
+                  <div
+                    className="flex items-center gap-x-2.5 py-2.5 px-3 bg-primary/10 rounded-lg"
+                    key={`multi_${index + 1}`}
+                  >
+                    <span className="text-sm text-primary leading-5 inline-flex gap-1">
+                      image
+                      {data.label}
+                    </span>
+
+                    <Button
+                      parentClass="h-fit"
+                      className="w-4 h-4 select-none rounded-full hover:bg-primary hover:text-white border border-solid border-primary inline-block p-[3px] cursor-pointer active:scale-90 transition-all duration-300"
+                      onClickHandler={() => {
+                        handleRemoveOption(data.value);
+                        if (onChange) {
+                          onChange([data], 'Removed');
+                        }
+                      }}
+                    >
+                      image
+                    </Button>
+                  </div>
+                );
+              }
+              return null;
+            })}
+        </div>
+      )}
+    </>
+  );
+};
+
+export default ReactSelect;
