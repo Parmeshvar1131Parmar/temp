@@ -1,0 +1,58 @@
+import { Op } from "sequelize";
+import { logger } from "@/utils/logger";
+import BaseRepository from "../../common/base.repository";
+import Movie from "@/sequelizeDir/models/movie";
+import Images from "@/sequelizeDir/models/image";
+import Genre from "@/sequelizeDir/models/genre";
+import Actors from "@/sequelizeDir/models/actor";
+import Watchlist from "@/sequelizeDir/models/watchlist";
+import Like from "@/sequelizeDir/models/like";
+import Directors from "@/sequelizeDir/models/director";
+import MovieGenre from "@/sequelizeDir/models/movie_genre";
+import MovieActors from "@/sequelizeDir/models/movie_actor";
+import MovieDirector from "@/sequelizeDir/models/movie_director";
+import { IMAGEABLE_TYPE_MOVIE } from "@/common/constants/multer.contants";
+
+export default class MovieRepo extends BaseRepository<Movie> {
+  constructor() {
+    super(Movie.name);
+  }
+
+  readonly getAllMovie = async (limit: number, offset: number) => {
+    logger.info("get all movie");
+    const { count, rows: movies } = await Movie.findAndCountAll({
+      limit: limit || 20,
+      offset: offset || 0,
+      include: [
+        {
+          model: Images,
+        },
+        {
+          model: Genre,
+        },
+        {
+          model: Actors,
+        },
+        {
+          model: Watchlist,
+        },
+        {
+          model: Like,
+        },
+        {
+          model: Directors,
+        },
+      ],
+      order: [],
+    });
+
+    return {
+      movies,
+      totalItems: count,
+      totalPages: Math.ceil(count / limit),
+      currentPage: offset / limit + 1,
+    };
+  };
+
+  // other methods...
+}
