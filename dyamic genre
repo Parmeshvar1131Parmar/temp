@@ -1,0 +1,71 @@
+import { useEffect, useState } from 'react';
+import { useField, useFormikContext } from 'formik';
+import { useAxiosGet } from 'hook/useAxios';
+import ReactSelect from 'components/FormElement/ReactSelect';
+import { Option } from 'components/FormElement/ReactSelect';
+
+interface Genre {
+  name: string;
+}
+
+const Genre = () => {
+  const [field, meta, helpers] = useField('genres');
+  const { setFieldValue } = useFormikContext();
+  const [genres, setGenres] = useState<Genre[]>([]);
+  const [options, setOptions] = useState<Option[]>([]);
+  const [GenreGetApi] = useAxiosGet();
+
+  const fetchGenre = async () => {
+    try {
+      const response = await GenreGetApi('/genre');
+      const fetchedGenres = response?.data;
+      setGenres(fetchedGenres);
+
+      // Map fetched genres to options
+      const genreOptions = fetchedGenres.map((item: Genre) => ({
+        value: item.name,
+        label: item.name,
+      }));
+      setOptions(genreOptions);
+    } catch (error) {
+      console.error('Error fetching genres:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchGenre();
+  }, []);
+
+  const handleChange = (selectedOptions: Option[] | null, action: string) => {
+    if (selectedOptions) {
+      setFieldValue('genres', selectedOptions);
+    } else {
+      setFieldValue('genres', []);
+    }
+  };
+
+  return (
+    <>
+      <h2 className="text-white text-xl m-2 text-center">Step 2: Genre</h2>
+      <ReactSelect
+        label="Genres"
+        isMulti
+        isInput
+        name="genres"
+        placeholder="Select movie genres"
+        options={options}
+        isCompulsory
+        className="my-react-select-container w-[1000px]"
+        selectedValue={field.value}
+        onChange={handleChange}
+      />
+      {meta.touched && meta.error ? (
+        <div className="text-red-600 text-xs font-semibold block mt-1">
+          {meta.error}
+        </div>
+      ) : null}
+    </>
+  );
+};
+
+export default Genre;
