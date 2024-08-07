@@ -1,0 +1,54 @@
+const addDays = (date: Date, days: number): Date => {
+  const result = new Date(date);
+  result.setDate(result.getDate() + days);
+  return result;
+};
+
+const addWeeks = (date: Date, weeks: number): Date => {
+  return addDays(date, weeks * 7);
+};
+
+const addMonths = (date: Date, months: number): Date => {
+  const result = new Date(date);
+  result.setMonth(result.getMonth() + months);
+  return result;
+};
+
+const subDays = (date: Date, days: number): Date => {
+  return addDays(date, -days);
+};
+
+const subWeeks = (date: Date, weeks: number): Date => {
+  return addDays(date, -weeks * 7);
+};
+
+const subMonths = (date: Date, months: number): Date => {
+  return addMonths(date, -months);
+};
+
+
+
+const startOfWeek = (date: Date): Date => {
+  const result = new Date(date);
+  const day = result.getDay();
+  const diff = result.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+  result.setDate(diff);
+  return new Date(result.setHours(0, 0, 0, 0));
+};
+
+const endOfWeek = (date: Date): Date => {
+  const result = startOfWeek(date);
+  result.setDate(result.getDate() + 6);
+  return new Date(result.setHours(23, 59, 59, 999));
+};
+
+const formatDate = (date: Date, format: string): string => {
+  const map: { [key: string]: string } = {
+    'dd': ('0' + date.getDate()).slice(-2),
+    'MMMM': date.toLocaleString('default', { month: 'long' }),
+    'MMM': date.toLocaleString('default', { month: 'short' }),
+    'yyyy': date.getFullYear().toString(),
+  };
+
+  return format.replace(/dd|MMMM|MMM|yyyy/g, (matched) => map[matched]);
+};
