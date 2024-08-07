@@ -1,0 +1,128 @@
+const formatDate = (date: Date, format: string): string => {
+  const map: { [key: string]: string } = {
+    'dd': ('0' + date.getDate()).slice(-2),
+    'MMMM': date.toLocaleString('default', { month: 'long' }),
+    'MMM': date.toLocaleString('default', { month: 'short' }),
+    'yyyy': date.getFullYear().toString(),
+    'z': date.toString().match(/\(([A-Za-z\s].*)\)/)?.[1] || '',
+    'h': date.getHours() % 12 || 12,
+    'a': date.getHours() < 12 ? 'AM' : 'PM',
+  };
+
+  return format.replace(/dd|MMMM|MMM|yyyy|z|h|a/g, (matched) => map[matched]);
+};
+
+
+
+const startOfDay = (date: Date): Date => {
+  const result = new Date(date);
+  result.setHours(0, 0, 0, 0);
+  return result;
+};
+
+const endOfDay = (date: Date): Date => {
+  const result = new Date(date);
+  result.setHours(23, 59, 59, 999);
+  return result;
+};
+
+
+const eachHourOfInterval = ({ start, end }: { start: Date; end: Date }): Date[] => {
+  const hours = [];
+  const current = new Date(start);
+
+  while (current <= end) {
+    hours.push(new Date(current));
+    current.setHours(current.getHours() + 1);
+  }
+
+  return hours;
+};
+
+
+
+import { useEffect, useState } from 'react';
+import type { Event } from '../types';
+
+export type DayViewProps = {
+  date: Date;
+  events?: Event[];
+};
+
+const formatDate = (date: Date, format: string): string => {
+  const map: { [key: string]: string } = {
+    'dd': ('0' + date.getDate()).slice(-2),
+    'MMMM': date.toLocaleString('default', { month: 'long' }),
+    'MMM': date.toLocaleString('default', { month: 'short' }),
+    'yyyy': date.getFullYear().toString(),
+    'z': date.toString().match(/\(([A-Za-z\s].*)\)/)?.[1] || '',
+    'h': (date.getHours() % 12 || 12).toString(),
+    'a': date.getHours() < 12 ? 'AM' : 'PM',
+  };
+
+  return format.replace(/dd|MMMM|MMM|yyyy|z|h|a/g, (matched) => map[matched]);
+};
+
+const startOfDay = (date: Date): Date => {
+  const result = new Date(date);
+  result.setHours(0, 0, 0, 0);
+  return result;
+};
+
+const endOfDay = (date: Date): Date => {
+  const result = new Date(date);
+  result.setHours(23, 59, 59, 999);
+  return result;
+};
+
+const eachHourOfInterval = ({ start, end }: { start: Date; end: Date }): Date[] => {
+  const hours = [];
+  const current = new Date(start);
+
+  while (current <= end) {
+    hours.push(new Date(current));
+    current.setHours(current.getHours() + 1);
+  }
+
+  return hours;
+};
+
+export const DayView: React.FC<DayViewProps> = ({ date }) => {
+  const [hours, setHours] = useState<Date[]>([]);
+
+  useEffect(() => {
+    setHours(eachHourOfInterval({
+      start: startOfDay(date),
+      end: endOfDay(date),
+    }));
+  }, [date]);
+
+  return (
+    <section id="calendar-day-view" className="flex-1 h-full">
+      <div className="border-b flex">
+        <div className="w-24 h-14 flex justify-center items-center">
+          <span className="text-xs">{formatDate(new Date(), "z")}</span>
+        </div>
+        <div className="flex flex-col flex-1 justify-center items-center border-l"></div>
+      </div>
+      <div className="flex-1 max-h-full overflow-y-scroll pb-28">
+        <div className="relative">
+          {hours.map((time, index) => (
+            <div className="h-14 flex" key={time.toISOString() + index}>
+              <div className="h-full w-24 flex items-start justify-center">
+                <time className="text-xs -m-3 select-none" dateTime={formatDate(time, "yyyy-MM-dd")}>
+                  {index === 0 ? "" : formatDate(time, "h a")}
+                </time>
+              </div>
+              <div className="flex-1 relative border-b border-l" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+
+
+
