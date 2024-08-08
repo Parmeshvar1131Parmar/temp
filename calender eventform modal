@@ -1,0 +1,40 @@
+import React, { useState } from "react";
+import { WeekView } from "./week-view";
+import { Modal } from "./modal";
+import { EventForm } from "./event-form";
+import { Event } from "../types";
+
+type CalendarProps = {
+  events: Event[];
+  onEventSave: (event: Event) => void;
+};
+
+export const Calendar: React.FC<CalendarProps> = ({ events, onEventSave }) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+
+  const handleEventClick = (event: Event) => {
+    setSelectedEvent(event);
+    setIsModalOpen(true);
+  };
+
+  const handleNewEventClick = () => {
+    setSelectedEvent(null);
+    setIsModalOpen(true);
+  };
+
+  const handleSave = (event: Event) => {
+    onEventSave(event);
+    setIsModalOpen(false);
+  };
+
+  return (
+    <div>
+      <button onClick={handleNewEventClick}>New Event</button>
+      <WeekView date={new Date()} events={events} onEventClick={handleEventClick} />
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+        <EventForm event={selectedEvent} onSave={handleSave} onCancel={() => setIsModalOpen(false)} />
+      </Modal>
+    </div>
+  );
+};
