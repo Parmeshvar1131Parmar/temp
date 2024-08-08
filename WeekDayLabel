@@ -1,0 +1,45 @@
+import React from "react";
+import { cn } from "../../utils";
+
+export type WeekDayLabelProps = {
+  day: Date;
+};
+
+const isToday = (date: Date): boolean => {
+  const today = new Date();
+  return (
+    date.getDate() === today.getDate() &&
+    date.getMonth() === today.getMonth() &&
+    date.getFullYear() === today.getFullYear()
+  );
+};
+
+const formatDate = (date: Date, format: string): string => {
+  const map: { [key: string]: string } = {
+    'EEEEEE': date.toLocaleDateString('en-US', { weekday: 'narrow' }), // First letter of the weekday
+    'd': date.getDate().toString(),
+  };
+
+  return format.replace(/EEEEEE|d/g, (matched) => map[matched]);
+};
+
+export const WeekDayLabel: React.FC<WeekDayLabelProps> = ({ day }) => {
+  const isDayToday = isToday(day);
+
+  return (
+    <div className="flex-1 min-w-36 flex flex-col items-center">
+      <span aria-hidden className="text-md text-gray-400">
+        {formatDate(day, "EEEEEE")}
+      </span>
+      <div
+        aria-label={day.toDateString()}
+        className={cn(
+          "w-11 h-11 rounded-full flex items-center justify-center text-2xl font-medium text-gray-400",
+          isDayToday && "text-white bg-blue-400"
+        )}
+      >
+        <p className="leading-[44px]">{formatDate(day, "d")}</p>
+      </div>
+    </div>
+  );
+};
