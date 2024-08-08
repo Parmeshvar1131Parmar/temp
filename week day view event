@@ -1,0 +1,50 @@
+import React from "react";
+import { cn } from "../../utils";
+import { startOfDay, endOfDay, eachHourOfInterval } from "../utils/date-utils";
+import { Event } from "../types";
+
+type WeekDayViewProps = {
+  day: Date;
+  events: Event[];
+  onEventClick: (event: Event) => void;
+};
+
+export const WeekDayView: React.FC<WeekDayViewProps> = ({ day, events, onEventClick }) => {
+  const hours = eachHourOfInterval({
+    start: startOfDay(day),
+    end: endOfDay(day),
+  });
+
+  return (
+    <div
+      aria-label={"Events slot for " + day.toDateString()}
+      className="min-w-36 h-full flex flex-1 relative"
+    >
+      <div className="w-[95%] h-full absolute">
+        <div className="w-full h-full relative">
+          {events.map((event) => (
+            <div
+              key={event.id}
+              className="absolute bg-blue-500 text-white p-2 rounded"
+              style={{ top: event.top, height: event.height }}
+              onClick={() => onEventClick(event)}
+            >
+              {event.title}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="w-full flex flex-col">
+        {hours.map((time, index) => (
+          <div
+            key={time.toISOString()}
+            className={cn(
+              "h-14 w-full border-l",
+              index !== hours.length - 1 && "border-b"
+            )}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
