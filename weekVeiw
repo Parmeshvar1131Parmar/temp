@@ -1,0 +1,140 @@
+import React from "react";
+import { WeekDayView } from "./week-day-view";
+import { WeekDayLabel } from "./week-day-label";
+import type { Event } from "../types";
+
+type WeekViewProps = {
+  date: Date;
+  events?: Event[];
+};
+
+const startOfDay = (date: Date): Date => {
+  const result = new Date(date);
+  result.setHours(0, 0, 0, 0);
+  return result;
+};
+
+const endOfDay = (date: Date): Date => {
+  const result = new Date(date);
+  result.setHours(23, 59, 59, 999);
+  return result;
+};
+
+const startOfWeek = (date: Date, weekStartsOn: number = 0): Date => {
+  const result = new Date(date);
+  const day = result.getDay();
+  const diff = (day < weekStartsOn ? 7 : 0) + day - weekStartsOn;
+  result.setDate(result.getDate() - diff);
+  return startOfDay(result);
+};
+
+const endOfWeek = (date: Date, weekStartsOn: number = 0): Date => {
+  const result = new Date(date);
+  const day = result.getDay();
+  const diff = (day < weekStartsOn ? 7 : 0) + day - weekStartsOn;
+  result.setDate(result.getDate() + (6 - diff));
+  return endOfDay(result);
+};
+
+const eachDayOfInterval = (interval: { start: Date, end: Date }): Date[] => {
+  const { start, end } = interval;
+  const days = [];
+  const current = new Date(start);
+
+  while (current <= end) {
+    days.push(new Date(current));
+    current.setDate(current.getDate() + 1);
+  }
+
+  return days;
+};
+
+const eachHourOfInterval = (interval: { start: Date, end: Date }): Date[] => {
+  const { start, end } = interval;
+  const hours = [];
+  const current = new Date(start);
+
+  while (current <= end) {
+    hours.push(new Date(current));
+    current.setHours(current.getHours() + 1);
+  }
+
+  return hours;
+};
+
+const formatDate = (date: Date, format: string): string => {
+  const map: { [key: string]: string } = {
+    'z': date.toLocaleDateString('en-US', { timeZoneName: 'short' }).split(' ')[1], // Timezone
+    'h a': date.toLocaleString('en-US', { hour: 'numeric', hour12: true }), // Hour and AM/PM
+    'yyyy-MM-dd': date.toISOString().split('T')[0], // Date in yyyy-MM-dd format
+  };
+
+  return format.replace(/z|h a|yyyy-MM-dd/g, (matched) => map[matched]);
+};
+
+export const WeekView: React.FC<WeekViewProps> = ({ date, events = [] }) => {
+  const hours = eachHourOfInterval({
+    start: startOfDay(date),
+    end: endOfDay(date),
+  });
+
+  const days = eachDayOfInterval({
+    start: startOfWeek(date),
+    end: endOfWeek(date),
+  });
+
+  return (
+    <section id="calendar-day-view" className="flex-1 h-full">
+      <div className="min-w-[calc(96px+(144px*7))] flex border-b scrollbar-gutter-stable">
+        <div className="min-w-24 h-14 flex justify-center items-center">
+          <span className="text-xs">{formatDate(new Date(), "z")}</span>
+        </div>
+        <div className="flex flex-col flex-1">
+          <div className="relative flex flex-1">
+            {days.map((day) => (
+              <WeekDayLabel
+                day={day}
+                key={"week-day-label-" + day.toISOString()}
+              />
+            ))}
+          </div>
+          <div className="relative min-h-6">
+            <div className="absolute inset-0 h-full flex flex-1">
+              <div className="flex-1 min-w-36 border-l" />
+              <div className="flex-1 min-w-36 border-l" />
+              <div className="flex-1 min-w-36 border-l" />
+              <div className="flex-1 min-w-36 border-l" />
+              <div className="flex-1 min-w-36 border-l" />
+              <div className="flex-1 min-w-36 border-l" />
+              <div className="flex-1 min-w-36 border-l" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="min-w-[calc(96px+(144px*7))] flex overflow-y-auto">
+        <div className="h-fit flex flex-col">
+          {hours.map((time, index) => (
+            <div
+              key={time.toISOString() + index}
+              aria-label={formatDate(time, "h a")}
+              className="min-h-14 w-24 flex items-start justify-center"
+            >
+              <time
+                className="text-xs -m-3 select-none"
+                dateTime={formatDate(time, "yyyy-MM-dd")}
+              >
+                {index === 0 ? "" : formatDate(time, "h a")}
+              </time>
+            </div>
+          ))}
+        </div>
+        <div className="flex flex-1 h-fit">
+          {days.map((day) => {
+            const iso = day.toISOString();
+            return <WeekDayView day={day} key={iso} events={[]} />;
+          })}
+        </div>
+      </div>
+    </section>
+  );
+};
