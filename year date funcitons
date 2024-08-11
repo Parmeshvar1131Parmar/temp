@@ -1,26 +1,110 @@
-import {
-  eachMonthOfInterval as dateFnsEachMonthOfInterval,
-  startOfYear as dateFnsStartOfYear,
-  endOfYear as dateFnsEndOfYear,
-  format as dateFnsFormat
-} from 'date-fns';
-
-// Function to get each month in a given interval
-export const eachMonthOfInterval = (interval: { start: Date; end: Date }) => {
-  return dateFnsEachMonthOfInterval(interval);
-};
-
-// Function to get the start of a year
+// Get the start of a year
 export const startOfYear = (date: Date) => {
-  return dateFnsStartOfYear(date);
+  return new Date(date.getFullYear(), 0, 1);
 };
 
-// Function to get the end of a year
+// Get the end of a year
 export const endOfYear = (date: Date) => {
-  return dateFnsEndOfYear(date);
+  return new Date(date.getFullYear(), 11, 31, 23, 59, 59, 999);
 };
 
-// Function to format dates
+// Get each month in a given interval
+export const eachMonthOfInterval = (interval: { start: Date; end: Date }) => {
+  const months = [];
+  const start = startOfYear(interval.start);
+  const end = endOfYear(interval.end);
+
+  let current = new Date(start);
+  while (current <= end) {
+    months.push(new Date(current));
+    current.setMonth(current.getMonth() + 1);
+  }
+  return months;
+};
+
+// Format a date to a string
 export const formatDate = (date: Date, format: string) => {
-  return dateFnsFormat(date, format);
+  const options: Intl.DateTimeFormatOptions = {};
+
+  if (format.includes('MMMM')) options.month = 'long';
+  if (format.includes('MMM')) options.month = 'short';
+  if (format.includes('MM')) options.month = '2-digit';
+  if (format.includes('yyyy')) options.year = 'numeric';
+  if (format.includes('yy')) options.year = '2-digit';
+  if (format.includes('d')) options.day = 'numeric';
+  if (format.includes('dd')) options.day = '2-digit';
+  if (format.includes('h')) options.hour = 'numeric';
+  if (format.includes('hh')) options.hour = '2-digit';
+  if (format.includes('m')) options.minute = 'numeric';
+  if (format.includes('mm')) options.minute = '2-digit';
+  if (format.includes('s')) options.second = 'numeric';
+  if (format.includes('ss')) options.second = '2-digit';
+
+  return new Intl.DateTimeFormat('en-US', options).format(date);
+};
+
+
+
+import React, { useState } from 'react';
+import { eachMonthOfInterval, startOfYear, endOfYear, formatDate } from '../DateFunctions'; // Adjust path as necessary
+import { Event } from '../types';
+import { MonthView } from './MonthView'; // Adjust path as necessary
+import GenericModal from './GenericModal'; // Adjust path as necessary
+
+type YearViewProps = {
+  date: Date;
+  events?: Event[];
+};
+
+export const YearView: React.FC<YearViewProps> = ({ date, events = [] }) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+
+  const handleOpenModal = (event: Event) => {
+    setSelectedEvent(event);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedEvent(null);
+  };
+
+  const handleSubmit = (values: any) => {
+    // Handle form submission logic here
+    console.log(values);
+    handleCloseModal();
+  };
+
+  const months = eachMonthOfInterval({
+    start: startOfYear(date),
+    end: endOfYear(date),
+  });
+
+  return (
+    <section id="calendar-year-view" className="flex-1 flex flex-col p-4">
+      <div className="grid grid-cols-3 gap-4">
+        {months.map((month) => (
+          <div
+            key={month.toISOString()}
+            className="border rounded p-2 bg-white shadow-md"
+          >
+            <h2 className="text-lg font-semibold text-center">
+              {formatDate(month, 'MMMM yyyy')}
+            </h2>
+            <MonthView date={month} events={events} />
+          </div>
+        ))}
+      </div>
+
+      {selectedEvent && (
+        <GenericModal
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          onSubmit={handleSubmit}
+          initialValues={selectedEvent}
+        />
+      )}
+    </section>
+  );
 };
