@@ -1,0 +1,109 @@
+import React, { useState, useEffect } from 'react';
+import { FormikValues } from 'formik';
+import { Event } from '../types';
+import { DayProgress } from '../DayProgress';
+import Modal from '../GenericModal'; // Import the new GenericModal component
+import InputField from '../../../components/Input/index';
+import {
+  eachHourOfInterval,
+  endOfDay,
+  isToday,
+  startOfDay,
+} from '../DateFunctions';
+
+type DayViewProps = {
+  date: Date;
+  events?: Event[];
+};
+
+const initialValues = {
+  title: '',
+  date: '',
+  start_time: '',
+  end_time: '',
+};
+
+export const DayView: React.FC<DayViewProps> = ({
+  date,
+  events = [],
+}) => {
+  const [hours, setHours] = useState<Date[]>([]);
+  const isDayToday: boolean = isToday(date);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<Date | null>(null);
+
+  const handleClose = () => {
+    setIsModalOpen(false);
+  };
+
+  const handleOpen = (timeSlot: Date) => {
+    setSelectedTimeSlot(timeSlot);
+    setIsModalOpen(true);
+  };
+
+  const onSubmit = async (values: FormikValues) => {
+    try {
+      console.log(values);
+      // Add your logic to handle form submission
+      handleClose();
+    } catch (error) {
+      console.error('Error creating event:', error);
+    }
+  };
+
+  useEffect(() => {
+    setHours(
+      eachHourOfInterval({
+        start: startOfDay(date),
+        end: endOfDay(date),
+      })
+    );
+  }, [date]);
+
+  return (
+    <>
+      <section className="flex-1 h-full">
+        <div className="flex-1 max-h-full">
+          <div className="relative">
+            {hours.map((time, index) => (
+              <div
+                className="h-14 flex"
+                key={time.toISOString() + index}
+                onClick={() => handleOpen(time)}
+              >
+                <div className="h-full w-24 flex items-start justify-center">
+                  <time
+                    className="text-xs -m-3 select-none"
+                    dateTime={formatDate(time, 'yyyy-MM-dd')}
+                  >
+                    {index === 0 ? '' : formatDate(time, 'h a')}
+                  </time>
+                </div>
+                <div className="flex-1 relative border-b border-l" />
+              </div>
+            ))}
+
+            {isDayToday && (
+              <DayProgress
+                containerHeight={ref?.offsetHeight || 1}
+                classNames="left-[88px]"
+              />
+            )}
+          </div>
+        </div>
+      </section>
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={handleClose}
+        onSubmit={onSubmit}
+        initialValues={{
+          title: '',
+          date: date.toISOString().split('T')[0],
+          start_time: selectedTimeSlot ? formatDate(selectedTimeSlot, 'HH:mm') : '',
+          end_time: '',
+        }}
+      />
+    </>
+  );
+};
