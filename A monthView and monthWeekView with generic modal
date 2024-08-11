@@ -1,0 +1,185 @@
+import React, { useState } from 'react';
+import {
+  eachDayOfInterval,
+  endOfDay,
+  endOfMonth,
+  startOfDay,
+  startOfMonth,
+  startOfWeek,
+} from '../DateFunctions';
+import { Event } from '../types';
+import { MonthWeekView } from './MonthWeekView';
+import GenericModal from './GenericModal'; // Adjust import path as necessary
+
+type MonthViewProps = {
+  date: Date;
+  events?: Event[];
+};
+
+export const MonthView: React.FC<MonthViewProps> = ({ date, events = [] }) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+
+  const handleOpenModal = (event: Event) => {
+    setSelectedEvent(event);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedEvent(null);
+  };
+
+  const handleSubmit = (values: any) => {
+    // Handle form submission logic here
+    console.log(values);
+    handleCloseModal();
+  };
+
+  const days = eachDayOfInterval({
+    start: startOfWeek(date),
+    end: endOfWeek(date),
+  });
+
+  const weeks = eachDayOfInterval({
+    start: startOfWeek(startOfMonth(date)),
+    end: endOfWeek(endOfMonth(date)),
+  }).reduce((acc, cur, idx) => {
+    const groupIndex: number = Math.floor(idx / 7);
+
+    if (!acc[groupIndex]) {
+      acc[groupIndex] = [];
+    }
+    acc[groupIndex].push(cur);
+    return acc;
+  }, [] as Date[][]);
+
+  return (
+    <section id="calendar-month-view" className="flex-1 flex flex-col">
+      <div className="w-full flex">
+        {days.map((day) => (
+          <div
+            key={day.toISOString()}
+            className="flex-1 flex justify-center border-t border-l last:border-r"
+          >
+            <span className="mt-2 text-sm font-semibold text-gray-500">
+              {formatDate(day, 'EEEEEE')}
+            </span>
+          </div>
+        ))}
+      </div>
+      <div className="flex-1 flex flex-col">
+        {weeks.map((week) => {
+          const weekEndDate = endOfDay(week[week.length - 1]);
+          const weekStartDate = startOfDay(week[0]);
+          const weekKey =
+            weekStartDate.toISOString() + '-' + weekEndDate.toISOString();
+          const props = { week, events, onEventClick: handleOpenModal };
+
+          return <MonthWeekView {...props} key={weekKey} />;
+        })}
+      </div>
+
+      {selectedEvent && (
+        <GenericModal
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          onSubmit={handleSubmit}
+          initialValues={selectedEvent}
+        />
+      )}
+    </section>
+  );
+};
+
+
+
+
+import React from 'react';
+import { cn } from 'utils';
+import { Event } from '../types';
+import {
+  addDays,
+  endOfMonth,
+  formatDate,
+  isSameDay,
+  isToday,
+  startOfMonth,
+} from '../DateFunctions';
+
+type MonthWeekViewProps = {
+  week: Date[];
+  events?: Event[];
+  onEventClick?: (event: Event) => void;
+};
+
+export const MonthWeekView: React.FC<MonthWeekViewProps> = ({
+  week,
+  events = [],
+  onEventClick,
+}) => {
+  const thisMonthDates =
+    week &&
+    week.filter((day) => {
+      const now = new Date(day);
+      const dateArray = [];
+      const startDate = startOfMonth(now);
+      const endDate = endOfMonth(now);
+      let currentDate = startDate;
+      while (currentDate <= endDate) {
+        dateArray.push(new Date(currentDate));
+        currentDate = addDays(currentDate, 1);
+      }
+
+      return dateArray;
+    });
+
+  return (
+    <div className="w-full h-full relative">
+      <div className="w-full h-full flex">
+        {week &&
+          week.map((day) => {
+            const isStartOfMonth: boolean = isSameDay(day, startOfMonth(day));
+            const isItToday: boolean = isToday(day);
+            const text: string = isStartOfMonth
+              ? formatDate(day, 'd MMM')
+              : formatDate(day, 'd');
+            const startDate = startOfMonth(day);
+
+            // Filter events for the current day
+            const dayEvents = events.filter(event =>
+              isSameDay(day, new Date(event.date))
+            );
+
+            return (
+              <div
+                key={'day-label-' + day.toISOString()}
+                className="flex-1 flex flex-col items-center border-b border-l last:border-r h-36"
+              >
+                <h2
+                  className={cn(
+                    'my-2 flex justify-center items-center text-sm font-semibold bg-transparent text-gray-500 w-6 h-6 rounded-full',
+                    isItToday && 'bg-blue-400 text-white',
+                    isStartOfMonth && 'px-2 rounded-xl text-purple-500',
+                    startDate && 'text-blue-800'
+                  )}
+                >
+                  {text}
+                </h2>
+                {dayEvents.map(event => (
+                  <div
+                    key={event.id}
+                    className="cursor-pointer p-1 hover:bg-gray-200"
+                    onClick={() => onEventClick && onEventClick(event)}
+                  >
+                    <span className="text-xs">{event.title}</span>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+      </div>
+      <div className="mt-10 mb-6 absolute inset-0 space-y-1 overflow-hidden"></div>
+    </div>
+  );
+};
