@@ -1,0 +1,90 @@
+import React, { useState } from 'react';
+import { eachDayOfInterval, endOfWeek, startOfWeek, startOfMonth, endOfMonth, formatDate } from '../DateFunctions'; // Custom date functions
+import { Event } from '../types';
+import { MonthWeekView } from './MonthWeekView';
+import GenericModal from '../GenericModal';
+
+type MonthViewProps = {
+  date: Date;
+  events?: Event[];
+};
+
+export const MonthView: React.FC<MonthViewProps> = ({ date, events = [] }) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+
+  const startOfMonthDate = startOfMonth(date);
+  const endOfMonthDate = endOfMonth(date);
+
+  const days: Date[] = eachDayOfInterval({
+    start: startOfWeek(startOfMonthDate),
+    end: endOfWeek(endOfMonthDate),
+  });
+
+  const weeks: Date[][] = [];
+  for (let i = 0; i < days.length; i += 7) {
+    weeks.push(days.slice(i, i + 7));
+  }
+
+  const handleEventClick = (event: Event) => {
+    setSelectedEvent(event);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedEvent(null);
+  };
+
+  const handleSubmit = (values: Event) => {
+    console.log('Submitted event:', values);
+    // Handle form submission here
+    handleCloseModal();
+  };
+
+  return (
+    <section id="calendar-month-view" className="flex-1 flex flex-col p-4">
+      <div className="grid grid-cols-7 gap-4">
+        {weeks.map((week, weekIndex) => (
+          <div key={weekIndex} className="flex flex-col">
+            {week.map((day) => {
+              const dayEvents = events.filter(event => 
+                new Date(event.date).toDateString() === day.toDateString()
+              );
+
+              return (
+                <div
+                  key={day.toISOString()}
+                  className="border p-2"
+                  aria-label={`Events on ${formatDate(day, 'MMMM d')}`}
+                >
+                  <h3 className="text-center font-semibold text-lg">{formatDate(day, 'd')}</h3>
+                  <div>
+                    {dayEvents.map((event) => (
+                      <div
+                        key={event.id}
+                        className="cursor-pointer"
+                        onClick={() => handleEventClick(event)}
+                      >
+                        <span>{event.title}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+
+      {selectedEvent && (
+        <GenericModal
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          onSubmit={handleSubmit}
+          initialValues={selectedEvent}
+        />
+      )}
+    </section>
+  );
+};
