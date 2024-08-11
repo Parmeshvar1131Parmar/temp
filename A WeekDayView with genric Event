@@ -1,0 +1,84 @@
+import React, { useState } from 'react';
+import type { Event } from '../types';
+import { cn } from 'utils';
+import { DayProgress } from '../DayProgress';
+import { eachHourOfInterval, endOfDay, isToday, startOfDay } from '../DateFunctions';
+import Modal from '../GenericModal'; // Import the new GenericModal component
+import { Formik, Form, Field } from 'formik';
+
+type WeekDayViewProps = {
+  day: Date;
+  events?: Event[];
+  onAddEvent: (date: Date) => void;
+};
+
+export const WeekDayView: React.FC<WeekDayViewProps> = ({
+  day,
+  events = [],
+  onAddEvent,
+}) => {
+  const [ref, setRef] = useState<HTMLDivElement | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<Date | null>(null);
+
+  const isDayToday: boolean = isToday(day);
+  const hours: Date[] = eachHourOfInterval({
+    start: startOfDay(day),
+    end: endOfDay(day),
+  });
+
+  const handleOpen = (timeSlot: Date) => {
+    setSelectedTimeSlot(timeSlot);
+    setIsModalOpen(true);
+  };
+
+  const handleClose = () => {
+    setIsModalOpen(false);
+  };
+
+  const handleAddEvent = () => {
+    if (selectedTimeSlot) {
+      onAddEvent(selectedTimeSlot);
+    }
+    handleClose();
+  };
+
+  return (
+    <div
+      aria-label={'Events slot for ' + day.toDateString()}
+      className="min-w-36 h-full flex flex-1 relative"
+    >
+      <div className="w-[95%] h-full absolute">
+        <div className="w-full h-full relative" ref={(ref) => setRef(ref)} />
+      </div>
+      <div className="w-full flex flex-col">
+        {hours.map((time, index) => (
+          <div
+            key={time.toISOString()}
+            className={cn(
+              'h-14 w-full border-l',
+              index !== hours.length - 1 && 'border-b'
+            )}
+            onClick={() => handleOpen(time)}
+          />
+        ))}
+      </div>
+      {isDayToday && <DayProgress containerHeight={ref?.offsetHeight || 1} />}
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={handleClose}
+        onSubmit={(values) => {
+          console.log(values);
+          handleAddEvent();
+        }}
+        initialValues={{
+          title: '',
+          date: day.toISOString().split('T')[0],
+          start_time: selectedTimeSlot ? formatDate(selectedTimeSlot, 'HH:mm') : '',
+          end_time: '',
+        }}
+      />
+    </div>
+  );
+};
