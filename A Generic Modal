@@ -1,0 +1,96 @@
+import React from 'react';
+import { Formik, Form } from 'formik';
+import InputField from '../../../components/Input/index'; // Update the import path as necessary
+
+interface GenericModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (values: any) => void;
+  initialValues: any;
+}
+
+const GenericModal: React.FC<GenericModalProps> = ({
+  isOpen,
+  onClose,
+  onSubmit,
+  initialValues,
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50">
+      <div className="bg-white p-4 rounded shadow-lg w-80 relative">
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-2 right-2 text-gray-500 hover:text-gray-800"
+        >
+          &times;
+        </button>
+        <Formik
+          initialValues={initialValues}
+          onSubmit={onSubmit}
+        >
+          {({ values }) => (
+            <Form>
+              <div className="mb-4">
+                <InputField
+                  name="title"
+                  type="text"
+                  label="Title"
+                  value={values.title}
+                  isCompulsory={true}
+                  showError={true}
+                  className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 w-full"
+                />
+              </div>
+              <div className="mb-4">
+                <InputField
+                  name="date"
+                  type="date"
+                  label="Date"
+                  value={values.date}
+                  isCompulsory={true}
+                  showError={true}
+                  className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 w-full"
+                />
+              </div>
+              <div className="mb-4">
+                <InputField
+                  name="start_time"
+                  type="time"
+                  label="Start Time"
+                  value={values.start_time}
+                  isCompulsory={true}
+                  showError={true}
+                  className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 w-full"
+                />
+              </div>
+              <div className="mb-4">
+                <InputField
+                  name="end_time"
+                  type="time"
+                  label="End Time"
+                  value={values.end_time}
+                  isCompulsory={true}
+                  showError={true}
+                  className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 w-full"
+                />
+              </div>
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  className="bg-blue-500 text-white px-4 py-2 rounded"
+                >
+                  Save
+                </button>
+              </div>
+            </Form>
+          )}
+        </Formik>
+      </div>
+    </div>
+  );
+};
+
+export default GenericModal;
