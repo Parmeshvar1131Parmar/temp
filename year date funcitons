@@ -1,0 +1,26 @@
+import {
+  eachMonthOfInterval as dateFnsEachMonthOfInterval,
+  startOfYear as dateFnsStartOfYear,
+  endOfYear as dateFnsEndOfYear,
+  format as dateFnsFormat
+} from 'date-fns';
+
+// Function to get each month in a given interval
+export const eachMonthOfInterval = (interval: { start: Date; end: Date }) => {
+  return dateFnsEachMonthOfInterval(interval);
+};
+
+// Function to get the start of a year
+export const startOfYear = (date: Date) => {
+  return dateFnsStartOfYear(date);
+};
+
+// Function to get the end of a year
+export const endOfYear = (date: Date) => {
+  return dateFnsEndOfYear(date);
+};
+
+// Function to format dates
+export const formatDate = (date: Date, format: string) => {
+  return dateFnsFormat(date, format);
+};
