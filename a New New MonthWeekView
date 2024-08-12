@@ -1,0 +1,78 @@
+import React from 'react';
+import { cn } from 'utils';
+import { Event } from '../types';
+
+// Helper functions (consider refactoring into a utility module if not already available)
+const isSameDay = (date1: Date, date2: Date) => {
+  return (
+    date1.getDate() === date2.getDate() &&
+    date1.getMonth() === date2.getMonth() &&
+    date1.getFullYear() === date2.getFullYear()
+  );
+};
+
+const isToday = (date: Date) => {
+  const today = new Date();
+  return isSameDay(date, today);
+};
+
+const startOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1);
+const endOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0);
+
+const formatDate = (date: Date, format: string) => {
+  const options: Intl.DateTimeFormatOptions = {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  };
+  return new Intl.DateTimeFormat('en-US', options).format(date);
+};
+
+type MonthWeekViewProps = {
+  week: Date[];
+  week_events?: [];
+  week_day_events?: Record<string, Event[]>;
+};
+
+export const MonthWeekView: React.FC<MonthWeekViewProps> = ({
+  week,
+  // week_events = [],
+  // week_day_events = {},
+}) => {
+  const currentMonth = week[0].getMonth(); // Assuming the first day in the week belongs to the current month
+
+  return (
+    <div className="w-full h-full relative">
+      <div className="w-full h-full flex">
+        {week.map((day) => {
+          const isStartOfMonth: boolean = isSameDay(day, startOfMonth(day));
+          const isItToday: boolean = isToday(day);
+          const isCurrentMonth: boolean = day.getMonth() === currentMonth;
+
+          const text: string = isStartOfMonth
+            ? formatDate(day, 'd MMM')
+            : formatDate(day, 'd');
+
+          return (
+            <div
+              key={'day-label-' + day.toISOString()}
+              className="flex-1 flex flex-col items-center border-b border-l last:border-r h-36"
+            >
+              <h2
+                className={cn(
+                  'my-2 flex justify-center items-center text-sm font-semibold bg-transparent w-6 h-6 rounded-full',
+                  isItToday && 'bg-blue-400 text-white',
+                  isStartOfMonth && 'px-2 rounded-xl text-purple-500',
+                  isCurrentMonth ? 'text-gray-800' : 'text-gray-400'
+                )}
+              >
+                {text}
+              </h2>
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-10 mb-6 absolute inset-0 space-y-1 overflow-hidden"></div>
+    </div>
+  );
+};
