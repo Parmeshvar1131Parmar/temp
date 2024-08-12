@@ -1,0 +1,47 @@
+import { cn } from 'utils';
+import {
+  eachDayOfInterval,
+  endOfMonth,
+  endOfWeek,
+  startOfMonth,
+  startOfWeek,
+  formatDate,
+} from '../DateFunctions';
+import { Event } from '../types';
+
+type MiniMonthViewProps = {
+  date: Date;
+  events?: Event[];
+};
+
+export const MiniMonthView: React.FC<MiniMonthViewProps> = ({ date, events = [] }) => {
+  const days = eachDayOfInterval({
+    start: startOfWeek(startOfMonth(date)),
+    end: endOfWeek(endOfMonth(date)),
+  });
+
+  return (
+    <div className="grid grid-cols-7 gap-1">
+      {days.map((day) => {
+        const dayEvents = events.filter(
+          (event) => new Date(event.date).toDateString() === day.toDateString()
+        );
+
+        const isCurrentMonth = day.getMonth() === date.getMonth();
+
+        return (
+          <div
+            key={day.toISOString()}
+            className={cn(
+              'p-1 h-6 w-6 flex items-center justify-center text-xs',
+              isCurrentMonth ? 'text-gray-800' : 'text-gray-400'
+            )}
+          >
+            <span className={cn(dayEvents.length > 0 && 'bg-blue-400 rounded-full w-1 h-1')}></span>
+            {formatDate(day, 'd')}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
