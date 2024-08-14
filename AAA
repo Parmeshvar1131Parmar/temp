@@ -1,0 +1,89 @@
+import React, { forwardRef, useEffect, useRef, useState, useImperativeHandle } from 'react';
+import { DataTable } from 'primereact/datatable';
+import { Column } from 'primereact/column';
+import { Paginator } from 'primereact/paginator';
+import { InputText } from 'primereact/inputtext';
+import { useDispatch, useSelector } from 'react-redux';
+import { isEmpty } from 'lodash';
+
+const TableInfiniteScroll = forwardRef((props, ref) => {
+    const dispatch = useDispatch();
+    const [data, setData] = useState([]);
+    const [totalRecords, setTotalRecords] = useState(0);
+    const [loading, setLoading] = useState(false);
+    const [selectedRows, setSelectedRows] = useState([]);
+    const [filters, setFilters] = useState({});
+
+    const [first, setFirst] = useState(0);
+    const [rows, setRows] = useState(props.rowDataLimit || 10);
+
+    useEffect(() => {
+        fetchData(first, rows, filters);
+    }, [first, rows, filters]);
+
+    const fetchData = async (offset, limit, filters) => {
+        setLoading(true);
+        const params = {
+            offset,
+            limit,
+            filters,
+            sortField: filters.sortField,
+            sortOrder: filters.sortOrder,
+        };
+
+        const response = await props.getData(params);
+        setData(response.rowData);
+        setTotalRecords(response.rowCount);
+        setLoading(false);
+    };
+
+    const onPageChange = (event) => {
+        setFirst(event.first);
+        setRows(event.rows);
+    };
+
+    const onFilter = (e) => {
+        const value = e.target.value;
+        setFilters({ ...filters, global: { value, matchMode: 'contains' } });
+    };
+
+    useImperativeHandle(ref, () => ({
+        getSelectedRows: () => selectedRows,
+        refreshData: () => fetchData(first, rows, filters),
+    }));
+
+    const columnTemplates = props.columnData.map((col, index) => (
+        <Column key={index} field={col.field} header={col.header} sortable={true} />
+    ));
+
+    return (
+        <div>
+            <div className="p-inputgroup">
+                <InputText type="search" onInput={onFilter} placeholder="Search" />
+            </div>
+            <DataTable
+                value={data}
+                lazy
+                paginator
+                first={first}
+                rows={rows}
+                totalRecords={totalRecords}
+                loading={loading}
+                onPage={onPageChange}
+                selectionMode="checkbox"
+                selection={selectedRows}
+                onSelectionChange={(e) => setSelectedRows(e.value)}
+            >
+                {columnTemplates}
+            </DataTable>
+            <Paginator
+                first={first}
+                rows={rows}
+                totalRecords={totalRecords}
+                onPageChange={onPageChange}
+            />
+        </div>
+    );
+});
+
+export default TableInfiniteScroll;
