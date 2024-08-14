@@ -1,87 +1,105 @@
-import React, { forwardRef, useEffect, useRef, useState, useImperativeHandle } from 'react';
+import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
-import { Paginator } from 'primereact/paginator';
-import { InputText } from 'primereact/inputtext';
 import { useDispatch, useSelector } from 'react-redux';
-import { isEmpty } from 'lodash';
+import { InputText } from 'primereact/inputtext';
+import { useDebounce } from 'use-debounce'; // Assuming a debounce library for debouncing input
+import { ScrollTop } from 'primereact/scrolltop';
 
 const TableInfiniteScroll = forwardRef((props, ref) => {
     const dispatch = useDispatch();
-    const [data, setData] = useState([]);
-    const [totalRecords, setTotalRecords] = useState(0);
+    const { setSelectionList, columnData, rowDataLimit, getData, ...otherProps } = props;
+
+    const [rows, setRows] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [first, setFirst] = useState(0);
+    const [totalRecords, setTotalRecords] = useState(0);
     const [selectedRows, setSelectedRows] = useState([]);
     const [filters, setFilters] = useState({});
+    const [sortField, setSortField] = useState(null);
+    const [sortOrder, setSortOrder] = useState(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedSearchQuery] = useDebounce(searchQuery, 300); // Debounce the search query
 
-    const [first, setFirst] = useState(0);
-    const [rows, setRows] = useState(props.rowDataLimit || 10);
-
-    useEffect(() => {
-        fetchData(first, rows, filters);
-    }, [first, rows, filters]);
-
-    const fetchData = async (offset, limit, filters) => {
+    const onLazyLoad = async (event) => {
         setLoading(true);
         const params = {
-            offset,
-            limit,
-            filters,
-            sortField: filters.sortField,
-            sortOrder: filters.sortOrder,
+            startRow: event.first,
+            endRow: event.first + event.rows,
+            sortModel: event.sortField ? [{ colId: event.sortField, sort: event.sortOrder === 1 ? 'asc' : 'desc' }] : [],
+            filterModel: filters,
+            query: debouncedSearchQuery
         };
-
-        const response = await props.getData(params);
-        setData(response.rowData);
-        setTotalRecords(response.rowCount);
+        
+        const { rowData, rowCount } = await getData(params);
+        setRows(event.first === 0 ? rowData : [...rows, ...rowData]);
+        setTotalRecords(rowCount);
+        setFirst(event.first);
         setLoading(false);
     };
 
-    const onPageChange = (event) => {
-        setFirst(event.first);
-        setRows(event.rows);
+    const onSelectionChange = (e) => {
+        setSelectedRows(e.value);
+        setSelectionList(e.value);
+    };
+
+    const onSort = (e) => {
+        setSortField(e.sortField);
+        setSortOrder(e.sortOrder);
     };
 
     const onFilter = (e) => {
-        const value = e.target.value;
-        setFilters({ ...filters, global: { value, matchMode: 'contains' } });
+        setFilters(e.filters);
+    };
+
+    const onSearchChange = (e) => {
+        setSearchQuery(e.target.value);
     };
 
     useImperativeHandle(ref, () => ({
+        refreshData: () => {
+            setFirst(0);
+            onLazyLoad({ first: 0, rows: rowDataLimit });
+        },
         getSelectedRows: () => selectedRows,
-        refreshData: () => fetchData(first, rows, filters),
+        onChange: (value) => {
+            setSearchQuery(value);
+        }
     }));
 
-    const columnTemplates = props.columnData.map((col, index) => (
-        <Column key={index} field={col.field} header={col.header} sortable={true} />
-    ));
+    useEffect(() => {
+        onLazyLoad({ first: 0, rows: rowDataLimit });
+    }, [debouncedSearchQuery, filters, sortField, sortOrder]);
 
     return (
-        <div>
+        <div className="datatable-infinite-scroll">
             <div className="p-inputgroup">
-                <InputText type="search" onInput={onFilter} placeholder="Search" />
+                <InputText value={searchQuery} onChange={onSearchChange} placeholder="Search..." />
             </div>
             <DataTable
-                value={data}
+                value={rows}
                 lazy
                 paginator
-                first={first}
-                rows={rows}
+                scrollable
+                rows={rowDataLimit}
                 totalRecords={totalRecords}
+                first={first}
+                onLazyLoad={onLazyLoad}
                 loading={loading}
-                onPage={onPageChange}
-                selectionMode="checkbox"
                 selection={selectedRows}
-                onSelectionChange={(e) => setSelectedRows(e.value)}
+                onSelectionChange={onSelectionChange}
+                sortField={sortField}
+                sortOrder={sortOrder}
+                onSort={onSort}
+                filters={filters}
+                onFilter={onFilter}
+                {...otherProps}
             >
-                {columnTemplates}
+                {columnData.map((col) => (
+                    <Column key={col.field} field={col.field} header={col.header} sortable filter />
+                ))}
             </DataTable>
-            <Paginator
-                first={first}
-                rows={rows}
-                totalRecords={totalRecords}
-                onPageChange={onPageChange}
-            />
+            <ScrollTop target="parent" threshold={100} />
         </div>
     );
 });
